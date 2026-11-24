@@ -1,0 +1,91 @@
+/**
+ * assets/css/inbound-summary.css — gaya tampilan Inbound Tracking (ringkasan dari Google Sheet): grup .sum-*, .exp-* (preview export).
+ * Dimuat di body tepat sebelum konten (posisi sama seperti <style> aslinya, jadi urutan cascade tidak berubah).
+ */
+  /* ===== Tema abu-abu slate (selaras tombol Refresh / Reset) ===== */
+  .sum-sec { margin-bottom: 22px; }
+  .sum-sec h3 { margin: 0 0 10px; font-size: 15px; color: #0f172a; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding-left: 10px; border-left: 4px solid #64748b; }
+  .sum-sec h3 small { font-weight: 600; color: #64748b; font-size: 11px; }
+  .projection-filter-bar { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; box-shadow: 0 1px 3px rgba(15,23,42,.06); }
+  .forecast-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; }
+  .forecast-header { color: #334155; }
+  .sum-k { border: 1px solid #e2e8f0; border-top: 4px solid #64748b; border-radius: 10px; box-shadow: 0 1px 3px rgba(15,23,42,.06); transition: transform .15s, box-shadow .15s; }
+  .sum-k:hover { transform: translateY(-2px); box-shadow: 0 6px 14px rgba(15,23,42,.10); }
+  .sum-k .forecast-title { color: #64748b; }
+  .sum-k .forecast-value { color: #0f172a; font-size: 26px; }
+  .sum-k.a-green { border-top-color: #22c55e; } .sum-k.a-blue { border-top-color: #3b82f6; } .sum-k.a-red { border-top-color: #ef4444; }
+  .ch-wrapper, .sum-scroll { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; box-shadow: 0 1px 3px rgba(15,23,42,.06); }
+  .container .ch-table th { background: #64748b; color: #fff; border: 1px solid #7b8aa0; font-size: 11.5px; letter-spacing: .2px; }
+  .container .ch-table td { border: 1px solid #eef2f7; }
+  .container .ch-table tbody tr:nth-child(even) td { background: #f8fafc; }
+  .container .ch-table tbody tr:hover td { background: #eef2f7; }
+  .container .ch-table tbody tr.sum-total td { background: #e2e8f0; font-weight: 800; color: #0f172a; }
+  .sum-scroll { max-height: 560px; overflow: auto; }
+  .sum-scroll .ch-table { min-width: 2600px; }
+  .sum-scroll .ch-table th { position: sticky; top: 0; z-index: 2; white-space: nowrap; }
+  .sum-scroll .ch-table td { white-space: nowrap; }
+  .sum-chip { display: inline-block; padding: 2px 10px; border-radius: 10px; font-weight: 700; font-size: 11px; }
+  .sum-chip.early { background: #dcfce7; color: #15803d; }
+  .sum-chip.ontime { background: #dbeafe; color: #1d4ed8; }
+  .sum-chip.late { background: #fee2e2; color: #b91c1c; }
+  .sum-over { color: #b91c1c; font-weight: 800; }
+  .sum-ok { color: #15803d; font-weight: 800; }
+  .sum-pe { color: #15803d; font-weight: 700; } .sum-po { color: #1d4ed8; font-weight: 700; } .sum-pl { color: #b91c1c; font-weight: 700; }
+  .sum-bar { display: flex; height: 10px; border-radius: 5px; overflow: hidden; background: #e2e8f0; min-width: 140px; }
+  .sum-bar span.e { background: #22c55e; } .sum-bar span.o { background: #3b82f6; } .sum-bar span.l { background: #ef4444; }
+  .sum-err { display: none; background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; border-radius: 6px; padding: 10px 14px; margin-bottom: 15px; font-size: 13px; font-weight: 600; }
+  .sum-kpi-sub { font-size: 11px; font-weight: 700; color: #64748b; margin-top: 2px; }
+  .sum-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 1100px) { .sum-grid2 { grid-template-columns: 1fr; } }
+  .sum-k.clickable { cursor: pointer; }
+  .sum-k.active { outline: 2px solid #64748b; background: #f1f5f9; }
+  .projection-filter-bar { gap: 10px; }
+  .filter-item select { min-width: 120px; }
+  .sum-chart-box { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px 14px; overflow-x: auto; box-shadow: 0 1px 3px rgba(15,23,42,.06); }
+  .sum-chart-title { font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 8px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+  .sum-lg { font-weight: 600; color: #64748b; font-size: 11px; display: inline-flex; align-items: center; gap: 4px; }
+  .sum-lg i { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+  .sum-plot { display: flex; align-items: flex-end; gap: 6px; min-height: 150px; }
+  .sum-col { flex: 1; min-width: 24px; max-width: 46px; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; font-size: 10px; color: #64748b; }
+  .sum-col b { color: #334155; font-size: 10px; margin-bottom: 2px; }
+  .sum-col span { margin-top: 3px; font-weight: 700; }
+  .sum-stk { width: 100%; display: flex; flex-direction: column-reverse; border-radius: 4px 4px 0 0; overflow: hidden; background: #64748b; }
+  .sum-stk i.e { background: #22c55e; } .sum-stk i.o { background: #3b82f6; } .sum-stk i.l { background: #ef4444; }
+  .sum-empty { color: #94a3b8; font-size: 12px; padding: 20px; text-align: center; }
+
+  /* ===== Export PDF (modal preview) ===== */
+  .btn-export-pdf { background: #0f172a; }
+  .btn-export-pdf:hover { background: #1e293b; }
+  .exp-backdrop { position: fixed; inset: 0; background: rgba(15,23,42,.55); backdrop-filter: blur(2px); z-index: 300; display: none; align-items: center; justify-content: center; padding: 20px; }
+  .exp-backdrop.open { display: flex; }
+  .exp-box { background: #fff; border-radius: 14px; width: min(1120px, 100%); max-height: 92vh; display: flex; flex-direction: column; box-shadow: 0 20px 50px rgba(0,0,0,.3); overflow: hidden; font-family: var(--tw-sans); }
+  .exp-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 20px; border-bottom: 1px solid #e2e8f0; background: #f8fafc; }
+  .exp-head h3 { margin: 0; font-size: 16px; color: #0f172a; }
+  .exp-head button { background: transparent; border: none; font-size: 18px; color: #64748b; cursor: pointer; padding: 4px 8px; }
+  .exp-head button:hover { color: #0f172a; }
+  .exp-body { padding: 16px 20px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 12px; }
+  .exp-opts { display: flex; flex-wrap: wrap; gap: 18px 28px; align-items: flex-start; }
+  .exp-opt { display: flex; flex-direction: column; gap: 6px; }
+  .exp-opt > label { font-size: 12px; font-weight: 700; color: #475569; }
+  .exp-seg { display: inline-flex; flex-wrap: wrap; gap: 6px; }
+  .exp-seg button { padding: 7px 12px; border: 1px solid #cbd5e1; background: #fff; border-radius: 8px; font-size: 12.5px; font-weight: 600; color: #334155; cursor: pointer; font-family: inherit; }
+  .exp-seg button:hover { background: #f1f5f9; }
+  .exp-seg button.on { background: #0f172a; border-color: #0f172a; color: #fff; }
+  #expVendorSel { margin-top: 6px; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 12.5px; min-width: 260px; background: #fff; display: none; }
+  .exp-info { font-size: 12px; color: #64748b; line-height: 1.6; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 12px; }
+  .exp-info b { color: #0f172a; }
+  .exp-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .exp-chips .sum-chip { font-size: 12px; padding: 4px 12px; }
+  .exp-chips .tot { background: #e2e8f0; color: #0f172a; }
+  .exp-scroll { border: 1px solid #e2e8f0; border-radius: 10px; max-height: 340px; overflow: auto; }
+  .exp-scroll .ch-table { min-width: 1000px; }
+  .exp-scroll .ch-table th { position: sticky; top: 0; z-index: 2; white-space: nowrap; background: #64748b; color: #fff; }
+  .exp-scroll .ch-table td { white-space: nowrap; }
+  .exp-foot { display: flex; align-items: center; gap: 10px; padding: 12px 20px; border-top: 1px solid #e2e8f0; background: #f8fafc; }
+  .exp-foot .exp-note { flex: 1; font-size: 11.5px; color: #64748b; }
+  .exp-foot button { padding: 9px 16px; border-radius: 8px; font-weight: 700; font-size: 13px; cursor: pointer; font-family: inherit; }
+  .exp-cancel { background: #fff; border: 1px solid #cbd5e1; color: #334155; }
+  .exp-cancel:hover { background: #f1f5f9; }
+  .exp-go { background: #0f172a; border: 1px solid #0f172a; color: #fff; }
+  .exp-go:hover { background: #1e293b; }
+  .exp-go:disabled { opacity: .45; cursor: not-allowed; }

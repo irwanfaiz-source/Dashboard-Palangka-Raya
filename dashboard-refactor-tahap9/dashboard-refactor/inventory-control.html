@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow, noarchive">
+  <title>Inventory Control - Internal Palangka Raya DC</title>
+  <link rel="icon" type="image/png" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📦</text></svg>">
+  <!-- Chart.js buat grafik Highlight Daily & Monthly Usage -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <!-- SheetJS buat fitur Export Laporan ke Excel -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <!-- QRCode.js buat fitur QR Code / Label Generator (khusus Asset NCA) -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+  <!-- jsPDF + AutoTable buat fitur Export Laporan ke PDF -->
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+  <!-- FIREBASE SDK (app+auth dibutuhkan auth-guard.js, database dibutuhkan buat sync Stock & Usage Log) -->
+  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+  <link rel="stylesheet" href="assets/css/app-sidebar.css">
+<link rel="stylesheet" href="assets/css/inventory-control.css">
+</head>
+<body>
+<div class="toast-stack" id="toastStack"></div>
+<div class="confirm-backdrop" id="confirmModalBackdrop">
+  <div class="confirm-box">
+    <p class="confirm-msg" id="confirmModalMsg"></p>
+    <div class="confirm-actions">
+      <button class="confirm-btn confirm-btn-cancel" id="confirmModalCancelBtn" data-i18n="inv.action.cancel">Batal</button>
+      <button class="confirm-btn confirm-btn-ok" id="confirmModalOkBtn" data-i18n="inv.confirm.yesContinue">Ya, Lanjut</button>
+    </div>
+  </div>
+</div>
+<script>window.__PAGE_TAB = "inventory-control";</script>
+<script src="auth-guard.js"></script>
+
+<script src="assets/js/common.js"></script>
+<script src="assets/js/feedback-board.js"></script>
+<script src="assets/js/i18n-engine.js"></script>
+<script src="assets/js/app-shell-bridge.js"></script>
+<script src="assets/js/app-sidebar.js"></script>
+<script src="assets/js/inventory-control/app-sidebar-config.js"></script>
+<script src="assets/js/inventory-control/i18n.js"></script>
+
+<!-- ==== SIDEBAR NAVIGASI ANTAR MODUL ==== -->
+<button class="hamburger-btn" onclick="toggleAppSidebar()" title="Buka Menu">☰</button>
+<div class="sidebar-backdrop" id="appSidebarBackdrop" onclick="toggleAppSidebar()"></div>
+<nav class="app-sidebar" id="appSidebar"></nav>
+
+<!-- ==== FEEDBACK BOARD (Saran & Masukan) — shared board via Firebase, real-time di semua device/modul ==== -->
+<div class="fb-board-backdrop" id="fbBoardBackdrop" onclick="if(event.target===this) closeFeedbackBoard()">
+  <div class="fb-board-card">
+    <div class="fb-board-header">
+      <h3>💬 <span data-i18n="feedback.title">Saran &amp; Masukan</span></h3>
+      <button onclick="closeFeedbackBoard()">✕</button>
+    </div>
+    <div class="fb-board-form">
+      <div class="fb-board-form-row">
+        <div class="fb-board-form-field">
+          <label data-i18n="feedback.module.label">Jenis Module</label>
+          <select id="fbBoardModule">
+            <option value="" data-i18n="feedback.module.placeholder">Pilih Module</option>
+            <option value="Inbound" data-i18n="feedback.module.inbound">Inbound</option>
+            <option value="Rest Time" data-i18n="feedback.module.restTime">Rest Time</option>
+            <option value="Asset Usage Monitoring" data-i18n="feedback.module.assetUsageMonitoring">Asset Usage Monitoring</option>
+            <option value="Performance Bagger" data-i18n="feedback.module.performanceBagger">Performance Bagger</option>
+            <option value="Outbound Monitoring" data-i18n="feedback.module.outboundMonitoring">Outbound Monitoring</option>
+            <option value="Inventory Control" data-i18n="feedback.module.inventoryControl">Inventory Control</option>
+          </select>
+        </div>
+        <div class="fb-board-form-field">
+          <label data-i18n="feedback.category.label">Jenis Pengaduan</label>
+          <select id="fbBoardCategory">
+            <option value="" data-i18n="feedback.category.placeholder">Pilih Jenis Pengaduan</option>
+            <option value="Bug" data-i18n="feedback.category.bug">Bug</option>
+            <option value="Fitur" data-i18n="feedback.category.feature">Fitur</option>
+          </select>
+        </div>
+      </div>
+      <label class="fb-board-form-detail-label" data-i18n="feedback.detail.label">Detail</label>
+      <textarea id="fbBoardInput" maxlength="500" placeholder="Jelasin masalah atau saran kamu di sini..." data-i18n-placeholder="feedback.placeholder" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();submitFeedback();}"></textarea>
+      <div class="fb-board-form-footer">
+        <button class="fb-board-submit-btn" id="fbBoardSubmitBtn" onclick="submitFeedback()" data-i18n="feedback.submit">Kirim</button>
+      </div>
+    </div>
+    <div class="fb-board-list" id="fbBoardList"></div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="header-bar">
+    <h2>📦 <span data-i18n="inv.header.title">Inventory Control Palangka Raya DC</span></h2>
+  </div>
+  <div class="header-bar">
+    <div class="inv-tabs">
+      <button class="inv-tab-btn" data-tab="usage" onclick="switchInvSubmenu('usage')">📝 <span data-i18n="inv.tab.usage">Log Activity Usage</span></button>
+      <button class="inv-tab-btn" data-tab="dashboard" onclick="switchInvSubmenu('dashboard')">📊 <span data-i18n="inv.tab.dashboard">Highlight Usage</span></button>
+      <button class="inv-tab-btn" data-tab="stock" onclick="switchInvSubmenu('stock')">🗄️ <span data-i18n="inv.tab.stock">Stock</span></button>
+      <button class="inv-tab-btn" data-tab="auditLog" onclick="switchInvSubmenu('auditLog')">📜 <span data-i18n="inv.tab.auditLog">Audit Log</span></button>
+      <button class="inv-tab-btn" data-tab="assetMaster" onclick="switchInvSubmenu('assetMaster')">🏷️ <span data-i18n="inv.tab.assetMaster">Master Nama Asset</span></button>
+    </div>
+  </div>
+
+  <!-- ================= LOW-STOCK BANNER (global, tampil terus di semua tab) ================= -->
+  <div class="lowstock-banner" id="lowStockBanner">
+    <span class="lowstock-banner-icon" id="lowStockBannerIcon">⚠️</span>
+    <span class="lowstock-banner-text" id="lowStockBannerText"></span>
+    <button class="lowstock-banner-close" onclick="dismissLowStockBanner()" title="Tutup sementara" data-i18n-title="inv.banner.closeTitle">✕</button>
+  </div>
+
+  <!-- ================= SUBMENU 1: LOG ACTIVITY USAGE (Input murni) ================= -->
+  <section id="invPanelUsage" class="inv-panel">
+
+    <div class="panel-box" style="margin-bottom:18px;">
+      <div class="panel-title">➕ <span data-i18n="inv.usage.formTitle">Input Penggunaan Asset / Pcs</span></div>
+      <div class="usage-form-layout">
+        <div class="form-item usage-asset-col">
+          <label data-i18n="inv.usage.assetQtyLabel">Asset &amp; Qty Dipakai (bisa lebih dari satu sekaligus)</label>
+          <div id="usageItemsContainer"></div>
+          <button type="button" class="btn-secondary" style="width:fit-content; margin-top:2px;" onclick="addUsageItemRow()">➕ <span data-i18n="inv.usage.addAssetBtn">Tambah Asset Lain</span></button>
+        </div>
+        <div class="usage-rest-grid">
+          <div class="form-item">
+            <label data-i18n="inv.usage.dateLabel">Tanggal</label>
+            <input type="date" id="usageDateInput">
+          </div>
+          <div class="form-item" id="devisiFormItem">
+            <label data-i18n="inv.usage.devisiLabel">Divisi</label>
+            <div style="display:flex; align-items:center; height:38px;">
+              <span id="devisiFormBadge" style="font-size:12px; background:#000; color:#fff; padding:5px 12px; border-radius:999px; font-weight:800;">SOC</span>
+            </div>
+          </div>
+          <div class="form-item">
+            <label>&nbsp;</label>
+            <button class="btn-primary" onclick="submitUsageLog()" data-i18n="inv.usage.saveLogBtn">Simpan Log</button>
+          </div>
+        </div>
+      </div>
+      <div class="form-msg" id="usageFormMsg"></div>
+    </div>
+
+    <div class="panel-box">
+      <div class="panel-title" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+        <span>🕒 <span data-i18n="inv.usage.historyTitle">Riwayat Log Penggunaan Terbaru</span></span>
+        <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+          <input type="text" id="logFilterAssetInput" class="date-range-input" style="min-width:150px;" placeholder="🔍 Cari nama asset..." data-i18n-placeholder="inv.usage.searchAssetPlaceholder" oninput="applyLogFilter()">
+          <input type="date" id="logFilterStartInput" class="date-range-input">
+          <span style="font-size:11px; color:#737373; font-weight:700;" data-i18n="inv.label.to">s/d</span>
+          <input type="date" id="logFilterEndInput" class="date-range-input">
+          <button class="range-tab-btn" onclick="applyLogFilter()" data-i18n="inv.action.filter">Filter</button>
+          <button class="range-tab-btn" onclick="resetLogFilter()" data-i18n="inv.action.reset">Reset</button>
+        </div>
+      </div>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr id="usageLogTableHead"><th data-i18n="inv.th.date">Tanggal</th><th data-i18n="inv.th.asset">Asset</th><th data-i18n="inv.th.qty">Qty</th><th data-i18n="inv.th.division">Divisi</th><th data-i18n="inv.th.inputBy">Diinput Oleh</th><th data-i18n="inv.th.action">Action</th></tr>
+          </thead>
+          <tbody id="usageLogBody"><tr class="empty-row"><td colspan="6" data-i18n="inv.usage.emptyLog">Belum ada log</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= SUBMENU 2: HIGHLIGHT DAILY & MONTHLY USAGE (Dashboard) ================= -->
+  <section id="invPanelDashboard" class="inv-panel">
+
+    <div style="display:flex; align-items:center; gap:8px; margin-bottom:14px; flex-wrap:wrap;">
+      <span style="font-size:12px; font-weight:800; color:#525252;" data-i18n="inv.dash.breakdownLabel">Breakdown Divisi:</span>
+      <select id="dashboardDevisiFilter" class="date-range-input" style="min-width:220px;" onchange="applyDashboardDevisiFilter()">
+        <option value="" data-i18n="inv.dash.allDivisions">Semua Divisi</option>
+        <option value="SOC" data-i18n="inv.dash.socLabel">Sortation Center</option>
+        <option value="EHA" data-i18n="inv.dash.ehaLabel">Exception Handling Area</option>
+      </select>
+    </div>
+
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-title" data-i18n="inv.kpi.todayUsage">Usage Hari Ini</div>
+        <div class="kpi-value" id="kpiTodayUsage">0</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-title" data-i18n="inv.kpi.monthUsage">Usage Bulan Ini</div>
+        <div class="kpi-value" id="kpiMonthUsage">0</div>
+        <div class="kpi-delta" id="kpiMonthDelta"></div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-title" data-i18n="inv.kpi.assetTouched">Asset Terpakai Bulan Ini</div>
+        <div class="kpi-value" id="kpiAssetTouched">0</div>
+      </div>
+      <div class="kpi-card warn" onclick="document.getElementById('lowStockDetailPanel').scrollIntoView({behavior:'smooth', block:'center'});">
+        <div class="kpi-title" data-i18n="inv.kpi.lowStock">Stock Menipis</div>
+        <div class="kpi-value" id="kpiLowStock">0</div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="panel-box">
+        <div class="panel-title" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+          <span id="dailyUsageChartTitle">📊 <span data-i18n="inv.dash.dailyChartTitle">Highlight Daily Usage</span></span>
+          <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+            <input type="date" id="dailyRangeStart" class="date-range-input">
+            <span style="font-size:11px; color:#737373; font-weight:700;" data-i18n="inv.label.to">s/d</span>
+            <input type="date" id="dailyRangeEnd" class="date-range-input">
+            <button class="range-tab-btn" onclick="applyDailyUsageDateRange()" data-i18n="inv.action.apply">Terapkan</button>
+          </div>
+        </div>
+        <div class="chart-wrap"><canvas id="dailyUsageChart"></canvas></div>
+      </div>
+      <div class="panel-box">
+        <div class="panel-title" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+          <span>🏆 <span data-i18n="inv.dash.topAssetTitle">Top Asset Terpakai (Bulan Ini)</span></span>
+          <button class="range-tab-btn" onclick="exportUsageExcelReport()">⬇️ <span data-i18n="inv.action.exportExcel">Export Excel</span></button>
+          <button class="range-tab-btn" onclick="exportDashboardPdfReport()">📄 <span data-i18n="inv.action.exportPdf">Export PDF</span></button>
+        </div>
+        <div class="table-wrapper" style="max-height:220px;">
+          <table>
+            <thead><tr><th data-i18n="inv.th.asset">Asset</th><th data-i18n="inv.th.totalUsed">Total Terpakai</th></tr></thead>
+            <tbody id="monthlyUsageBody"><tr class="empty-row"><td colspan="2" data-i18n="inv.empty.noData">Belum ada data</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel-box" style="margin-top:18px;">
+      <div class="panel-title">📈 <span data-i18n="inv.dash.trendTitle">Trend Bulanan Usage (6 Bulan Terakhir)</span></div>
+      <div class="chart-wrap"><canvas id="monthlyTrendChart"></canvas></div>
+    </div>
+
+    <div class="panel-box" id="lowStockDetailPanel" style="margin-top:18px;">
+      <div class="panel-title">⚠️ <span data-i18n="inv.dash.lowStockDetailTitle">Detail Stock Menipis &amp; Estimasi Habis</span></div>
+      <div class="table-wrapper" style="max-height:280px;">
+        <table>
+          <thead><tr><th data-i18n="inv.th.asset">Asset</th><th data-i18n="inv.th.currentStock">Stock Saat Ini</th><th data-i18n="inv.th.minStock">Min Stock</th><th data-i18n="inv.th.avgUsagePerDay">Rata-rata Pemakaian/Hari (30 hari)</th><th data-i18n="inv.th.estDepletion">Estimasi Habis</th><th data-i18n="inv.th.reorderSuggestion">Saran Reorder Qty</th></tr></thead>
+          <tbody id="lowStockDetailBody"><tr class="empty-row"><td colspan="6" data-i18n="inv.empty.noData">Belum ada data</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= SUBMENU: MASTER NAMA ASSET ================= -->
+  <section id="invPanelAssetMaster" class="inv-panel fit-bottom">
+    <div class="header-bar">
+      <div class="panel-title" style="margin:0;">🏷️ <span data-i18n="inv.master.title">Database Nama Asset</span></div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+        <input type="text" id="assetMasterSearch" class="date-range-input" style="min-width:180px;" placeholder="🔍 Cari nama asset..." data-i18n-placeholder="inv.master.searchPlaceholder" oninput="renderAssetMasterTable()">
+        <button class="btn-primary" id="btnAddMaster" onclick="openAssetMasterModal(null)">➕ <span data-i18n="inv.master.add">Tambah Nama Asset</span></button>
+        <button class="btn-secondary" id="btnSeedMaster" onclick="seedAssetMaster()" style="display:none;">📋 <span data-i18n="inv.master.seed">Isi Daftar Awal</span></button>
+      </div>
+    </div>
+    <p class="readonly-note" style="margin:0 0 8px 0;" data-i18n="inv.master.hint">Nama asset di Stock &amp; Import Excel HARUS dipilih dari daftar ini, jadi gak ada salah ketik atau input dobel.</p>
+    <p class="readonly-note" id="assetMasterReadonlyNote" style="display:none;" data-i18n="inv.master.readonlyNote">🔒 Kamu cuma bisa lihat daftar nama asset. Tambah/Edit/Hapus cuma bisa dilakukan admin.</p>
+    <div id="assetMasterLegacyBox" style="display:none; margin:10px 0; padding:10px 12px; border:1px dashed #000; border-radius:8px; font-size:12px;"></div>
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr><th>#</th><th data-i18n="inv.th.assetName">Nama Asset</th><th data-i18n="inv.th.category">Kategori</th><th data-i18n="inv.th.unit">Unit</th><th data-i18n="inv.master.thInStock">Di Stock</th><th data-i18n="inv.th.action">Action</th></tr>
+        </thead>
+        <tbody id="assetMasterBody"><tr class="empty-row"><td colspan="6" data-i18n="inv.master.emptyTable">Master Nama Asset masih kosong.</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ================= SUBMENU 3: STOCK ================= -->
+  <section id="invPanelStock" class="inv-panel fit-bottom">
+    <div class="header-bar">
+      <div class="panel-title" style="margin:0;">🗄️ <span data-i18n="inv.stock.title">Database Stock Asset</span></div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+        <button class="btn-primary" id="btnAddAsset" onclick="openAssetModal(null)">➕ <span data-i18n="inv.action.addAsset">Tambah Asset</span></button>
+        <button class="btn-secondary" id="btnImportStock" onclick="document.getElementById('stockImportFileInput').click()">📥 <span data-i18n="inv.action.importExcel">Import Excel</span></button>
+        <button class="btn-secondary" id="btnBulkTemplate" onclick="downloadStockBulkTemplate()">📄 <span data-i18n="inv.action.bulkTemplate">Bulk Template</span></button>
+        <input type="file" id="stockImportFileInput" accept=".xlsx,.xls" style="display:none;" onchange="handleStockImportFile(event)">
+      </div>
+    </div>
+    <p class="readonly-note" id="stockReadonlyNote" style="display:none;" data-i18n="inv.stock.readonlyNote">🔒 Kamu cuma bisa lihat data Stock. Tambah/Edit/Hapus Asset cuma bisa dilakukan admin.</p>
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr><th data-i18n="inv.th.asset">Asset</th><th data-i18n="inv.th.category">Kategori</th><th data-i18n="inv.th.unit">Unit</th><th data-i18n="inv.th.qty">Qty</th><th data-i18n="inv.th.minStock">Min Stock</th><th data-i18n="inv.th.note">Catatan</th><th data-i18n="inv.th.lastUpdate">Update Terakhir</th><th data-i18n="inv.th.action">Action</th></tr>
+        </thead>
+        <tbody id="stockBody"><tr class="empty-row"><td colspan="8" data-i18n="inv.stock.emptyTable">Belum ada data Stock</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ================= SUBMENU 5: AUDIT LOG ================= -->
+  <section id="invPanelAuditLog" class="inv-panel fit-bottom">
+    <div class="header-bar">
+      <div class="panel-title" style="margin:0;">📜 <span data-i18n="inv.audit.title">Audit Log — Jejak Perubahan Data</span></div>
+    </div>
+    <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:12px;">
+      <input type="text" id="auditLogFilterInput" class="date-range-input" style="min-width:180px;" placeholder="🔍 Cari nama item / diubah oleh..." data-i18n-placeholder="inv.audit.searchPlaceholder" oninput="applyAuditLogFilter()">
+      <select id="auditLogModuleFilter" class="date-range-input" onchange="applyAuditLogFilter()">
+        <option value="" data-i18n="inv.audit.allModules">Semua Modul</option>
+        <option value="Stock">Stock</option>
+        <option value="Log Usage">Log Usage</option>
+        <option value="Master Asset">Master Asset</option>
+      </select>
+      <button class="range-tab-btn" onclick="resetAuditLogFilter()" data-i18n="inv.action.reset">Reset</button>
+    </div>
+    <p class="readonly-note" data-i18n="inv.audit.readonlyNote">🔒 Audit Log otomatis tercatat tiap ada Tambah/Edit/Hapus data — cuma buat lihat riwayat, gak bisa diubah/dihapus manual.</p>
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr><th data-i18n="inv.th.time">Waktu</th><th data-i18n="inv.th.module">Modul</th><th data-i18n="inv.th.auditAction">Aksi</th><th data-i18n="inv.th.item">Item</th><th data-i18n="inv.th.detail">Detail</th><th data-i18n="inv.th.changedBy">Diubah Oleh</th></tr>
+        </thead>
+        <tbody id="auditLogBody"><tr class="empty-row"><td colspan="6" data-i18n="inv.audit.emptyTable">Belum ada Audit Log</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<!-- ==== MODAL TAMBAH / EDIT NAMA ASSET (MASTER) ==== -->
+<div class="modal-backdrop" id="assetMasterModalBackdrop">
+  <div class="modal-box">
+    <h3 id="assetMasterModalTitle">🏷️ Tambah Nama Asset</h3>
+    <input type="hidden" id="assetMasterModalId">
+    <div class="form-item">
+      <label data-i18n="inv.th.assetName">Nama Asset</label>
+      <input type="text" id="assetMasterNameInput" placeholder="Contoh: Lakban Coklat" maxlength="120">
+    </div>
+    <div class="form-item">
+      <label data-i18n="inv.label.categoryOptional">Kategori (opsional)</label>
+      <input type="text" id="assetMasterCategoryInput" placeholder="Contoh: Consumable">
+    </div>
+    <div class="form-item">
+      <label data-i18n="inv.th.unit">Unit</label>
+      <input type="text" id="assetMasterUnitInput" placeholder="Contoh: pcs, roll, pack">
+    </div>
+    <div class="form-msg" id="assetMasterModalMsg"></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeAssetMasterModal()" data-i18n="inv.action.cancel">Batal</button>
+      <button class="btn-primary" onclick="saveAssetMaster()" data-i18n="inv.action.save">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==== MODAL TAMBAH / EDIT ASSET ==== -->
+<div class="modal-backdrop" id="assetModalBackdrop">
+  <div class="modal-box">
+    <h3 id="assetModalTitle">➕ <span data-i18n="inv.modal.addAssetTitle">Tambah Asset Baru</span></h3>
+    <input type="hidden" id="assetModalId">
+    <div class="form-item">
+      <label data-i18n="inv.th.assetName">Nama Asset</label>
+      <select id="assetNameInput"></select>
+    </div>
+    <div class="form-item">
+      <label data-i18n="inv.label.categoryOptional">Kategori (opsional)</label>
+      <input type="text" id="assetCategoryInput" placeholder="Contoh: Alat Bantu, Consumable" data-i18n-placeholder="inv.placeholder.categoryExample">
+    </div>
+    <div class="form-item">
+      <label data-i18n="inv.th.unit">Unit</label>
+      <input type="text" id="assetUnitInput" placeholder="Contoh: pcs, unit, box" data-i18n-placeholder="inv.placeholder.unitExample">
+    </div>
+    <div class="form-item">
+      <label data-i18n="inv.label.currentQty">Qty Saat Ini</label>
+      <input type="number" id="assetQtyInput" min="0" step="1" placeholder="0">
+    </div>
+    <div class="form-item">
+      <label data-i18n="inv.label.minStockAlert">Min Stock (alert kalau di bawah ini)</label>
+      <input type="number" id="assetMinStockInput" min="0" step="1" placeholder="0">
+      <small id="minStockHint" data-i18n="inv.hint.minStock">Otomatis 35% dari Qty. Minim: &lt;35% Qty · Aman: &gt;35% Qty (bisa diubah manual)</small>
+    </div>
+    <div class="form-item">
+      <label data-i18n="inv.label.noteOptional">Catatan (opsional)</label>
+      <input type="text" id="assetNoteInput" placeholder="Keterangan tambahan..." data-i18n-placeholder="inv.placeholder.noteExtra">
+    </div>
+    <div class="form-msg" id="assetModalMsg"></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeAssetModal()" data-i18n="inv.action.cancel">Batal</button>
+      <button class="btn-primary" onclick="saveAsset()" data-i18n="inv.action.save">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==== MODAL EDIT LOG ACTIVITY USAGE ==== -->
+<div class="modal-backdrop" id="logModalBackdrop">
+  <div class="modal-box">
+    <h3>✏️ <span data-i18n="inv.modal.editLogTitle">Edit Log Penggunaan</span></h3>
+    <input type="hidden" id="logModalId">
+    <div class="form-item">
+      <label data-i18n="inv.th.asset">Asset</label>
+      <select id="logModalAssetSelect"></select>
+    </div>
+    <div class="form-item">
+      <label data-i18n="inv.label.qtyUsed">Qty Dipakai</label>
+      <input type="number" id="logModalQtyInput" min="1" step="1" placeholder="0">
+    </div>
+    <div class="form-item">
+      <label data-i18n="inv.usage.dateLabel">Tanggal</label>
+      <input type="date" id="logModalDateInput">
+    </div>
+    <div class="form-item" id="logModalDevisiItem">
+      <label data-i18n="inv.usage.devisiLabel">Divisi</label>
+      <select id="logModalDevisiInput">
+        <option value="SOC" data-i18n="inv.dash.socLabel">Sortation Center</option>
+        <option value="EHA" data-i18n="inv.dash.ehaLabel">Exception Handling Area</option>
+      </select>
+    </div>
+    <div class="form-msg" id="logModalMsg"></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeLogModal()" data-i18n="inv.action.cancel">Batal</button>
+      <button class="btn-primary" onclick="saveEditLog()" data-i18n="inv.action.save">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==== MODAL LIGHTBOX FOTO KONDISI ASSET ==== -->
+<div class="modal-backdrop" id="photoLightboxBackdrop">
+  <div class="modal-box" style="max-width:420px; text-align:center;">
+    <h3 id="photoLightboxTitle">📷 <span data-i18n="inv.modal.photoLightboxTitle">Foto Kondisi Asset</span></h3>
+    <img id="photoLightboxImg" src="" alt="Foto asset" style="width:100%; border-radius:8px; border:1px solid #d4d4d4;">
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closePhotoLightbox()" data-i18n="inv.action.close">Tutup</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==== MODAL QR CODE / LABEL (khusus Asset NCA) ==== -->
+<div class="modal-backdrop" id="qrLabelModalBackdrop">
+  <div class="modal-box" style="max-width:360px;">
+    <h3>🏷️ <span data-i18n="inv.modal.qrTitle">QR Code / Label Asset</span></h3>
+    <div id="qrCodeCanvasWrap"></div>
+    <div style="text-align:center; margin-top:6px;">
+      <div style="font-weight:800; font-size:14px;" id="qrLabelAssetName"></div>
+      <div style="font-size:12px; color:#737373;" id="qrLabelAssetSerial"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeQrLabelModal()" data-i18n="inv.action.close">Tutup</button>
+      <button class="btn-primary" onclick="printQrLabel()">🖨️ <span data-i18n="inv.action.printLabel">Cetak Label</span></button>
+    </div>
+  </div>
+</div>
+
+<!-- ==== MODAL RIWAYAT MUTASI ASSET ==== -->
+<div class="modal-backdrop" id="assetHistoryModalBackdrop">
+  <div class="modal-box" style="max-width:520px;">
+    <h3 id="assetHistoryModalTitle">🕘 <span data-i18n="inv.modal.assetHistoryTitle">Riwayat Mutasi Asset</span></h3>
+    <div class="table-wrapper" style="max-height:340px;">
+      <table>
+        <thead><tr><th data-i18n="inv.th.time">Waktu</th><th data-i18n="inv.th.change">Perubahan</th><th data-i18n="inv.th.changedBy">Diubah Oleh</th></tr></thead>
+        <tbody id="assetHistoryBody"><tr class="empty-row"><td colspan="3" data-i18n="inv.loading.history">Memuat riwayat...</td></tr></tbody>
+      </table>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeAssetHistoryModal()" data-i18n="inv.action.close">Tutup</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==== MODAL RIWAYAT PEMAKAIAN PER ITEM (Stock) ==== -->
+<div class="modal-backdrop" id="itemHistoryModalBackdrop">
+  <div class="modal-box" style="max-width:560px;">
+    <h3 id="itemHistoryModalTitle">🕘 <span data-i18n="inv.modal.itemHistoryTitle">Riwayat Pemakaian</span></h3>
+    <div id="itemHistoryInfoBox" style="font-size:11.5px; color:#525252; margin-bottom:10px; line-height:1.6;"></div>
+    <div class="table-wrapper" style="max-height:320px;">
+      <table>
+        <thead><tr><th data-i18n="inv.th.date">Tanggal</th><th data-i18n="inv.th.qty">Qty</th><th data-i18n="inv.th.division">Divisi</th><th data-i18n="inv.th.inputBy">Diinput Oleh</th></tr></thead>
+        <tbody id="itemHistoryBody"><tr class="empty-row"><td colspan="4" data-i18n="inv.loading.history">Memuat riwayat...</td></tr></tbody>
+      </table>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeItemHistoryModal()" data-i18n="inv.action.close">Tutup</button>
+    </div>
+  </div>
+</div>
+
+<script src="assets/js/inventory-control/feedback-config.js"></script>
+<script src="assets/js/inventory-control/i18n-config.js"></script>
+<script src="assets/js/inventory-control/state-and-devisi.js"></script>
+<script src="assets/js/inventory-control/layout-and-submenu.js"></script>
+<script src="assets/js/inventory-control/firebase-sync.js"></script>
+<script src="assets/js/inventory-control/audit-log.js"></script>
+<script src="assets/js/inventory-control/stock.js"></script>
+<script src="assets/js/inventory-control/asset-master.js"></script>
+<script src="assets/js/inventory-control/stock-import.js"></script>
+<script src="assets/js/inventory-control/asset-it-nca.js"></script>
+<script src="assets/js/inventory-control/item-history-and-low-stock.js"></script>
+<script src="assets/js/inventory-control/asset-it-nca-tools.js"></script>
+<script src="assets/js/inventory-control/usage-log.js"></script>
+<script src="assets/js/inventory-control/usage-dashboard.js"></script>
+<script src="assets/js/inventory-control/reports.js"></script>
+<script src="assets/js/inventory-control/dialogs-and-shortcuts.js"></script>
+<script src="assets/js/inventory-control/init.js"></script>
+
+<script src="assets/js/inventory-control/app-shell-bridge.js"></script>
+</body>
+</html>

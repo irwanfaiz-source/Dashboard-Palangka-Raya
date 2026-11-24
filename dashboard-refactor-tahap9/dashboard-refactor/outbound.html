@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<link rel="prefetch" href="rest-time.html">
+<title>Internal Palangka Raya DC</title>
+<style>
+  @view-transition {
+    navigation: auto;
+  }
+</style>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%237a1224'/%3E%3Cpath fill='%23ffffff' d='M1.5 6.75A.75.75 0 0 1 2.25 6h9a.75.75 0 0 1 .75.75v7.5h1.086a1.5 1.5 0 0 1 1.06.44l2.415 2.413a1.5 1.5 0 0 1 .439 1.061V15a.75.75 0 0 1 .75-.75h2.033a1.5 1.5 0 0 1 1.342.829L22.85 17.5a1.5 1.5 0 0 1 .15.67v1.83a1 1 0 0 1-1 1h-.774a2.25 2.25 0 1 1-4.452 0H7.726a2.25 2.25 0 1 1-4.452 0H2.5a1 1 0 0 1-1-1V6.75Zm14.25 8.25v3h1.324a2.25 2.25 0 0 1 4.202 0H21v-1.33l-1.83-3.17h-2.17a.75.75 0 0 0-.75.75v.75ZM5.5 20.25a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm12 0a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Z'/%3E%3C/svg%3E">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="assets/js/outbound/tailwind-config.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+<link rel="stylesheet" href="assets/css/app-sidebar.css">
+<link rel="stylesheet" href="assets/css/outbound.css">
+<link rel="stylesheet" href="assets/css/outbound-ux-patch.css">
+</head>
+<body class="bg-slate-100 text-slate-800 dark:bg-[#090d16] dark:text-slate-100 h-screen flex flex-col overflow-hidden transition-colors duration-200" id="dashboardContent">
+<script>window.__PAGE_TAB = "outbound";</script>
+<script src="auth-guard.js"></script>
+<div class="toast-stack" id="toastStack"></div>
+<script src="assets/js/common.js"></script>
+<script src="assets/js/feedback-board.js"></script>
+<script src="assets/js/i18n-engine.js"></script>
+<script src="assets/js/app-shell-bridge.js"></script>
+<script src="assets/js/app-sidebar.js"></script>
+<script src="assets/js/outbound/app-sidebar-config.js"></script>
+
+<script src="assets/js/outbound/i18n.js"></script>
+
+<div class="sidebar-backdrop" id="appSidebarBackdrop" onclick="toggleAppSidebar()"></div>
+<nav class="app-sidebar" id="appSidebar"></nav>
+
+<div class="fb-board-backdrop" id="fbBoardBackdrop" onclick="if(event.target===this) closeFeedbackBoard()">
+  <div class="fb-board-card">
+    <div class="fb-board-header">
+      <h3>💬 <span data-i18n="feedback.title">Saran &amp; Masukan</span></h3>
+      <button onclick="closeFeedbackBoard()">✕</button>
+    </div>
+    <div class="fb-board-form">
+      <textarea id="fbBoardInput" maxlength="500" placeholder="Tulis saran, masukan, atau curhatan kamu di sini..." data-i18n-placeholder="feedback.placeholder" onkeydown="if((event.ctrlKey||event.metaKey)&&event.key==='Enter'){event.preventDefault();submitFeedback();}"></textarea>
+      <div class="fb-board-form-footer">
+        <button class="fb-board-submit-btn" id="fbBoardSubmitBtn" onclick="submitFeedback()" data-i18n="feedback.submit">Kirim</button>
+      </div>
+    </div>
+    <div class="fb-board-list" id="fbBoardList"></div>
+  </div>
+</div>
+
+<header class="bg-black text-white shadow-lg flex-shrink-0 z-30">
+  <div class="max-w-full mx-auto px-3 py-2 flex justify-between items-center gap-2">
+    <div class="flex items-center space-x-3">
+      <button onclick="toggleAppSidebar()" class="hover:bg-white/10 p-1.5 rounded-lg transition text-white focus:outline-none border border-white/10" title="Buka Menu" data-i18n-title="ob.header.openMenu">
+        <i class="fa-solid fa-bars text-lg"></i>
+      </button>
+      <div class="p-1.5 bg-white/10 rounded-lg backdrop-blur-sm border border-white/15">
+        <i class="fa-solid fa-truck-fast text-xl text-white"></i>
+      </div>
+      <div>
+        <h1 class="text-sm md:text-base font-black tracking-tight uppercase leading-none" data-i18n="ob.header.title">PALANGKARAYA DC REPORT STAGING OUTBOUND</h1>
+        <p class="text-[9px] text-white/80 font-medium opacity-90 mt-0.5" data-i18n="ob.header.subtitle">Monitoring Staging Area Occupancy per Destination</p>
+      </div>
+    </div>
+    
+    <div class="flex items-center gap-2">
+      <button id="themeToggleBtn" onclick="toggleThemeMode()" class="bg-black/20 hover:bg-black/30 text-white font-semibold px-2.5 py-1 rounded-lg text-[11px] transition flex items-center gap-1.5 border border-white/20 shadow-sm" title="Switch Theme Mode" data-i18n-title="ob.header.themeSwitch">
+        <i id="themeToggleIcon" class="fa-solid fa-moon"></i>
+        <span id="themeToggleText" data-i18n="ob.header.themeDark">Dark</span>
+      </button>
+      
+      <div class="flex items-center bg-black/20 px-2.5 py-1 rounded-lg border border-white/20 text-white text-[11px] shadow-sm">
+        <span class="mr-1.5 font-semibold text-white/80" data-i18n="ob.header.journeyLabel">Journey:</span>
+        <select id="filterJourney" onchange="applyFilters()" class="bg-transparent text-white focus:outline-none cursor-pointer font-bold">
+          <option value="ALL" class="text-slate-800" data-i18n="ob.header.journeyAll">ALL TYPE</option>
+          <option value="Forward" class="text-slate-800" data-i18n="ob.header.journeyForward">FORWARD</option>
+          <option value="Return" class="text-slate-800" data-i18n="ob.header.journeyReturn">RETURN</option>
+        </select>
+      </div>
+      
+      <div id="sectionJump" class="hidden sm:flex items-center gap-0.5 bg-white/10 p-0.5 rounded-lg border border-white/20 backdrop-blur-sm">
+        <button type="button" data-jump="aging" onclick="switchSubmenu('aging')" class="jump-btn active" data-i18n="ob.jump.aging">Aging &amp; Backlog</button>
+        <button type="button" data-jump="occupancy" onclick="switchSubmenu('occupancy')" class="jump-btn" data-i18n="ob.jump.occupancy">Occupancy</button>
+      </div>
+      
+      <button id="downloadImageBtn" onclick="downloadReportImage()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3 py-1 rounded-lg text-[11px] transition flex items-center gap-1.5 shadow border border-emerald-400/30">
+        <i class="fa-solid fa-camera"></i>
+        <span class="hidden md:inline" data-i18n="ob.header.downloadImage">Download Gambar</span>
+      </button>
+
+      <div class="flex items-center space-x-1.5 bg-black/25 p-1 rounded-lg border border-white/20">
+        <label for="excelFile" class="cursor-pointer bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold px-2.5 py-0.5 rounded text-[11px] transition shadow-sm">
+          <i class="fa-solid fa-file-import"></i> <span data-i18n="ob.header.import">Import</span>
+        </label>
+        <input type="file" id="excelFile" accept=".xlsx, .xls, .csv" class="hidden" />
+        <button type="button" onclick="openLogUpdateModal()" title="Klik untuk lihat riwayat import" class="flex flex-col items-start leading-tight text-left max-w-[200px] cursor-pointer">
+  <span id="fileName" class="text-[10px] text-white/80 font-mono truncate max-w-full" data-i18n="ob.header.sampleData">Data Contoh</span>
+  <span id="importInfo" class="text-[9px] text-amber-300 font-mono truncate max-w-full">Belum ada import</span>
+</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="flex-1 p-3 flex flex-col gap-3 overflow-y-auto custom-scrollbar">
+
+  <div id="execSummaryCard" class="rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm hover:shadow-md transition-shadow duration-200 flex-shrink-0 overflow-hidden">
+    <div class="p-3 flex flex-col xl:flex-row gap-3">
+      <div class="flex-1 flex items-start gap-3 min-w-0">
+        <div id="execVerdictBadge" class="shrink-0 w-16 h-16 rounded-xl flex flex-col items-center justify-center font-black text-white shadow-inner bg-slate-400">
+          <i id="execVerdictIcon" class="fa-solid fa-circle-question text-xl"></i>
+          <span id="execVerdictLabel" class="text-[8px] mt-0.5 tracking-wide" data-i18n="ob.badge.na">N/A</span>
+        </div>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2 mb-1 flex-wrap">
+            <span class="text-[10px] font-extrabold uppercase tracking-wider text-shopee dark:text-orange-400">
+              <i class="fa-solid fa-wand-magic-sparkles mr-1"></i><span data-i18n="ob.exec.title">Executive Summary</span>
+            </span>
+            <span id="execDeltaTotal"></span>
+            <span id="execDeltaCritical"></span>
+          </div>
+          <div id="execNarrativeText" class="text-[11px] leading-relaxed font-sans text-slate-700 dark:text-slate-200" data-i18n="ob.exec.emptyNarrative">Belum ada data. Silakan import file Excel untuk melihat ringkasan otomatis.</div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2 xl:w-[420px] shrink-0" id="slaGaugeContainer">
+        <div class="col-span-2 text-center text-[10px] text-slate-400 dark:text-slate-500 py-2 font-sans" data-i18n="ob.exec.waitingSla">Menunggu data untuk hitung status SLA...</div>
+      </div>
+    </div>
+  </div>
+
+  <section id="agingSection" class="flex flex-col gap-3">
+    <div class="grid grid-cols-12 gap-3 flex-shrink-0">
+      <div class="col-span-3 font-sans relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-900 to-black p-3 rounded-xl text-white shadow-md hover:shadow-lg transition-shadow duration-200 border border-white/10 border-l-4 border-l-orange-500 flex flex-col justify-between gap-2.5">
+        <div class="flex items-center justify-between gap-2">
+          <div class="flex items-center gap-2.5 min-w-0">
+            <div class="w-10 h-10 flex-shrink-0 rounded-lg bg-orange-500/15 border border-orange-500/30 text-orange-400 flex items-center justify-center">
+              <svg class="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21V9l9-5 9 5v12"/><path d="M7 21v-8h10v8"/><path d="M7 17h10"/></svg>
+            </div>
+            <div class="min-w-0">
+              <p class="text-[11px] uppercase tracking-wider font-semibold text-white/60 leading-none" data-i18n="ob.kpi.dcName">DC Name</p>
+              <p class="text-base font-bold leading-tight mt-1 truncate">Palangka Raya DC</p>
+            </div>
+          </div>
+          <span class="flex-shrink-0 flex items-center gap-1.5 bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>Live
+          </span>
+        </div>
+
+        <div class="flex items-end justify-between gap-3 border-t border-white/10 pt-2.5">
+          <div>
+            <p class="text-[11px] uppercase tracking-wider font-semibold text-white/60 leading-none flex items-center gap-1.5"><svg class="w-3 h-3 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span data-i18n="ob.kpi.reportTime">Report Time</span></p>
+            <p id="liveTime" class="text-[30px] leading-none font-bold tabular-nums tracking-tight mt-1.5 text-white">--:--:--</p>
+          </div>
+          <p id="liveDate" class="text-base leading-none font-bold text-white text-right whitespace-nowrap pb-0.5">-</p>
+        </div>
+        <span id="liveClock" class="hidden"></span>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div class="bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5">
+            <p class="text-[10px] uppercase tracking-wider font-semibold text-white/60 leading-none" data-i18n="ob.kpi.processOutbound">Process Outbound</p>
+            <p class="text-sm font-bold mt-1 flex items-center gap-1.5 text-amber-300"><svg class="w-3.5 h-3.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/></svg><span data-i18n="ob.kpi.staging">Staging</span></p>
+          </div>
+          <div class="bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5">
+            <p class="text-[10px] uppercase tracking-wider font-semibold text-white/60 leading-none" data-i18n="ob.kpi.viewBy">View By</p>
+            <p class="text-sm font-bold mt-1 flex items-center gap-1.5 text-sky-300"><svg class="w-3.5 h-3.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s7-6.2 7-11a7 7 0 10-14 0c0 4.8 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg><span data-i18n="ob.kpi.destination">Destination</span></p>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-span-9 grid grid-cols-5 gap-2">
+        <div class="group bg-white dark:bg-slate-900 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
+          <div>
+            <p class="text-[11px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider" data-i18n="ob.kpi.totalPacked">Total Parcel Packed</p>
+            <h3 id="kpiTotalUnits" class="text-3xl xl:text-4xl leading-none font-black text-slate-800 dark:text-slate-100 font-mono mt-1.5">0</h3>
+            <span id="kpiTotalUnitsDelta" class="block mt-0.5"></span>
+          </div>
+          <div class="p-2.5 bg-slate-100 dark:bg-slate-800 rounded-xl text-slate-400 group-hover:scale-105 transition-transform">
+            <i class="fa-solid fa-boxes-stacked text-xl"></i>
+          </div>
+        </div>
+        <div id="kpiColorAssisted" class="group bg-white dark:bg-slate-900 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 border-l-4 border-l-emerald-500 flex items-center justify-between">
+          <div>
+            <p class="text-[11px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider" data-i18n="ob.kpi.parcelPacked">Parcel Packed</p>
+            <h3 id="kpiParcel" class="text-3xl xl:text-4xl leading-none font-black text-emerald-600 dark:text-emerald-400 font-mono mt-1.5">0</h3>
+          </div>
+          <div class="p-2.5 bg-emerald-500/10 rounded-xl text-emerald-500 group-hover:scale-105 transition-transform">
+            <i class="fa-solid fa-box text-xl"></i>
+          </div>
+        </div>
+        <div id="kpiColorIndividual" class="group bg-white dark:bg-slate-900 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 border-l-4 border-l-indigo-500 flex items-center justify-between">
+          <div>
+            <p class="text-[11px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider" data-i18n="ob.kpi.bulkyPacked">Bulky Packed</p>
+            <h3 id="kpiBulky" class="text-3xl xl:text-4xl leading-none font-black text-indigo-600 dark:text-indigo-400 font-mono mt-1.5">0</h3>
+          </div>
+          <div class="p-2.5 bg-indigo-500/10 rounded-xl text-indigo-500 group-hover:scale-105 transition-transform">
+            <i class="fa-solid fa-dolly text-xl"></i>
+          </div>
+        </div>
+        <div class="group bg-white dark:bg-slate-900 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 border-l-4 border-l-amber-500 flex items-center justify-between">
+          <div>
+            <p class="text-[11px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider" data-i18n="ob.kpi.highValuePacked">High Value Packed</p>
+            <h3 id="kpiHighValue" class="text-3xl xl:text-4xl leading-none font-black text-amber-600 dark:text-amber-400 font-mono mt-1.5">0</h3>
+          </div>
+          <div class="p-2.5 bg-amber-500/10 rounded-xl text-amber-500 group-hover:scale-105 transition-transform">
+            <i class="fa-solid fa-gem text-xl"></i>
+          </div>
+        </div>
+        <div class="group bg-white dark:bg-slate-900 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 border-l-4 border-l-sky-500 flex items-center justify-between">
+          <div>
+            <p class="text-[11px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider" data-i18n="ob.kpi.liquidPacked">Liquid Packed</p>
+            <h3 id="kpiLiquid" class="text-3xl xl:text-4xl leading-none font-black text-sky-600 dark:text-sky-400 font-mono mt-1.5">0</h3>
+          </div>
+          <div class="p-2.5 bg-sky-500/10 rounded-xl text-sky-500 group-hover:scale-105 transition-transform">
+            <i class="fa-solid fa-droplet text-xl"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex flex-wrap items-center gap-2 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-xl p-2 px-3 shadow-sm">
+      <div class="relative flex-1 min-w-[180px]">
+        <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-[11px]"></i>
+        <input id="gridSearchInput" type="text" placeholder="Cari Sort Code / Receiver Name..." data-i18n-placeholder="ob.grid.searchPlaceholder" oninput="onGridSearchInput(this.value)" class="w-full pl-7 pr-2 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-[11px] font-sans focus:outline-none focus:ring-2 focus:ring-shopee/40" />
+      </div>
+
+      <div class="flex items-center gap-1.5 text-[11px] font-sans">
+        <span class="text-slate-500 dark:text-slate-400 font-semibold hidden sm:inline" data-i18n="ob.grid.show">Tampilkan:</span>
+        <select id="gridPageSizeSelect" onchange="onGridPageSizeChange(this.value)" class="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 text-slate-700 dark:text-slate-200 font-bold focus:outline-none">
+          <option value="50">50</option>
+          <option value="100" selected>100</option>
+          <option value="200">200</option>
+          <option value="500">500</option>
+          <option value="all" data-i18n="ob.grid.all">Semua</option>
+        </select>
+      </div>
+
+      <div class="flex items-center gap-1.5">
+        <button id="gridPrevBtn" onclick="changeGridPage(-1)" class="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 disabled:opacity-30 disabled:cursor-not-allowed transition">
+          <i class="fa-solid fa-chevron-left text-[10px]"></i>
+        </button>
+        <span id="gridPageInfo" class="text-[10px] font-mono font-bold text-slate-600 dark:text-slate-300 whitespace-nowrap px-1">Halaman 1 / 1</span>
+        <button id="gridNextBtn" onclick="changeGridPage(1)" class="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 disabled:opacity-30 disabled:cursor-not-allowed transition">
+          <i class="fa-solid fa-chevron-right text-[10px]"></i>
+        </button>
+      </div>
+
+      <button onclick="exportGridToExcel()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3 py-1.5 rounded-lg text-[11px] transition flex items-center gap-1.5 shadow border border-emerald-400/30">
+        <i class="fa-solid fa-file-excel"></i>
+        <span class="hidden md:inline" data-i18n="ob.grid.exportExcel">Export Excel</span>
+      </button>
+    </div>
+
+    <div class="grid grid-cols-2 gap-3">
+      <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow duration-200 flex flex-col overflow-hidden">
+        <div class="p-2 px-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 font-bold text-slate-700 dark:text-slate-200 flex justify-between items-center flex-shrink-0">
+          <span class="flex items-center gap-1.5"><i class="fa-solid fa-list-ol text-shopee"></i> <span data-i18n="ob.grid1.title">Grid 1: High Volume Destination</span></span>
+        </div>
+        <div class="overflow-x-auto custom-scrollbar">
+          <table class="w-full text-[10px] dynamic-table">
+            <thead class="text-white bg-slate-800 dark:bg-slate-950 font-bold sticky top-0 z-10">
+              <tr>
+                <th class="w-[8%] !text-center cursor-pointer select-none hover:bg-slate-700 transition" data-sort-field="sortcode"><span data-i18n="ob.th.sortCode">Sort Code</span><i class="fa-solid fa-sort ml-1 opacity-40 text-[8px]"></i></th>
+                <th class="w-[9%] !text-center bg-slate-700 border-x border-slate-600 cursor-pointer select-none hover:bg-slate-600 transition" data-sort-field="status" data-i18n-title="ob.th.agingStatusTitle" title="Alert berdasarkan Aging: D-1 GOOD, D-2 WARNING, D-3 s.d D-5+ DANGER"><span data-i18n="ob.th.agingStatus">Aging Status</span><i class="fa-solid fa-sort ml-1 opacity-40 text-[8px]"></i></th>
+                <th class="w-[16%] cursor-pointer select-none hover:bg-slate-700 transition" data-sort-field="name"><span data-i18n="ob.th.receiverName">Receiver Name</span><i class="fa-solid fa-sort ml-1 opacity-40 text-[8px]"></i></th>
+                <th class="w-[7%] bg-amber-600 border-x border-amber-700 cursor-pointer select-none hover:bg-amber-700 transition" data-sort-field="hv"><span data-i18n="ob.th.hv">HV</span><i class="fa-solid fa-sort ml-1 opacity-40 text-[8px]"></i></th>
+                <th class="w-[6%] cursor-pointer select-none hover:bg-slate-700 transition" data-sort-field="liquid"><span data-i18n="ob.th.liquid">Liquid</span><i class="fa-solid fa-sort ml-1 opacity-40 text-[8px]"></i></th>
+                <th class="w-[6%] cursor-pointer select-none hover:bg-slate-700 transition" data-sort-field="individual" data-i18n-title="ob.th.bulkyTitle" title="Bulky = Packing Method Individual Packing"><span data-i18n="ob.th.bulky">Bulky</span><i class="fa-solid fa-sort ml-1 opacity-40 text-[8px]"></i></th>
+                <th class="w-[7%] cursor-pointer select-none hover:bg-slate-700 transition" data-sort-field="assisted" data-i18n-title="ob.th.nonBulkyTitle" title="Non-Bulky = Packing Method Assisted Sorting"><span data-i18n="ob.th.nonBulky">Non-Bulky</span><i class="fa-solid fa-sort ml-1 opacity-40 text-[8px]"></i></th>
+                <th class="w-[9%] cursor-pointer select-none hover:bg-slate-700 transition" data-sort-field="total"><span data-i18n="ob.th.totalParcel">Total Parcel</span><i class="fa-solid fa-sort ml-1 opacity-40 text-[8px]"></i></th>
+                <th class="w-[5%] cursor-pointer select-none hover:bg-slate-700 transition" data-sort-field="d0">D-Day<i class="fa-solid fa-sort ml-1 opacity-40 text-[8px]"></i></th>
+                <th class="w-[5%] cursor-pointer select-none hover:bg-slate-700 transition" data-sort-field="d1">D-1<i class="fa-solid fa-sort ml-1 opacity-40 text-[8px]"></i></th>
+                <th class="w-[5%] cursor-pointer select-none hover:bg-slate-700 transition" data-sort-field="d2">D-2<i class="fa-solid fa-sort ml-1 opacity-40 text-[8px]"></i></th>
+                <th class="w-[5%] cursor-pointer select-none hover:bg-slate-700 transition" data-sort-field="d3">D-3<i class="fa-solid fa-sort ml-1 opacity-40 text-[8px]"></i></th>
+                <th class="w-[5%] cursor-pointer select-none hover:bg-slate-700 transition" data-sort-field="d4">D-4<i class="fa-solid fa-sort ml-1 opacity-40 text-[8px]"></i></th>
+                <th class="w-[5%] cursor-pointer select-none hover:bg-slate-700 transition" data-sort-field="d5">D-5+<i class="fa-solid fa-sort ml-1 opacity-40 text-[8px]"></i></th>
+              </tr>
+            </thead>
+            <tbody id="grid1TableBody" class="font-mono divide-y divide-slate-100 dark:divide-slate-800">
+              <tr><td colspan="14" class="text-center py-6 text-slate-400 dark:text-slate-500 font-sans" data-i18n="ob.emptyImportNew">Silakan import data Excel baru.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow duration-200 flex flex-col overflow-hidden">
+        <div class="p-2 px-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 font-bold text-slate-700 dark:text-slate-200 flex justify-between items-center flex-shrink-0">
+          <span class="flex items-center gap-1.5"><i class="fa-solid fa-list-ol text-shopee"></i> <span data-i18n="ob.grid2.title">Grid 2: Mid-Low Volume Destination</span></span>
+        </div>
+        <div class="overflow-x-auto custom-scrollbar">
+          <table class="w-full text-[10px] dynamic-table">
+            <thead class="text-white bg-slate-800 dark:bg-slate-950 font-bold sticky top-0 z-10">
+              <tr>
+                <th class="w-[8%] !text-center cursor-pointer select-none hover:bg-slate-700 transition" data-sort-field="sortcode"><span data-i18n="ob.th.sortCode">Sort Code</span><i class="fa-solid fa-sort ml-1 opacity-40 text-[8px]"></i></th>
+                <th class="w-[9%] !text-center bg-slate-700 border-x border-slate-600 cursor-pointer select-none hover:bg-slate-600 transition" data-sort-field="status" data-i18n-title="ob.th.agingStatusTitle" title="Alert berdasarkan Aging: D-1 GOOD, D-2 WARNING, D-3 s.d D-5 Danger"><span data-i18n="ob.th.agingStatus">Aging Status</span><i class="fa-solid fa-sort ml-1 opacity-40 text-[8px]"></i></th>
+                <th class="w-[16%] cursor-pointer select-none hover:bg-slate-700 transition" data-sort-field="name"><span data-i18n="ob.th.receiverName">Receiver Name</span><i class="fa-solid fa-sort ml-1 opacity-40 text-[8px]"></i></th>
+                <th class="w-[7%] bg-amber-600 border-x border-amber-700 cursor-pointer select-none hover:bg-amber-700 transition" data-sort-field="hv"><span data-i18n="ob.th.hv">HV</span><i class="fa-solid fa-sort ml-1 opacity-40 text-[8px]"></i></th>
+                <th class="w-[6%] cursor-pointer select-none hover:bg-slate-700 transition" data-sort-field="liquid"><span data-i18n="ob.th.liquid">Liquid</span><i class="fa-solid fa-sort ml-1 opacity-40 text-[8px]"></i></th>
+                <th class="w-[6%] cursor-pointer select-none hover:bg-slate-700 transition" data-sort-field="individual" data-i18n-title="ob.th.bulkyTitle" title="Bulky = Packing Method Individual Packing"><span data-i18n="ob.th.bulky">Bulky</span><i class="fa-solid fa-sort ml-1 opacity-40 text-[8px]"></i></th>
+                <th class="w-[7%] cursor-pointer select-none hover:bg-slate-700 transition" data-sort-field="assisted" data-i18n-title="ob.th.nonBulkyTitle" title="Non-Bulky = Packing Method Assisted Sorting"><span data-i18n="ob.th.nonBulky">Non-Bulky</span><i class="fa-solid fa-sort ml-1 opacity-40 text-[8px]"></i></th>
+                <th class="w-[9%] cursor-pointer select-none hover:bg-slate-700 transition" data-sort-field="total"><span data-i18n="ob.th.totalParcel">Total Parcel</span><i class="fa-solid fa-sort ml-1 opacity-40 text-[8px]"></i></th>
+                <th class="w-[5%] cursor-pointer select-none hover:bg-slate-700 transition" data-sort-field="d0">D-Day<i class="fa-solid fa-sort ml-1 opacity-40 text-[8px]"></i></th>
+                <th class="w-[5%] cursor-pointer select-none hover:bg-slate-700 transition" data-sort-field="d1">D-1<i class="fa-solid fa-sort ml-1 opacity-40 text-[8px]"></i></th>
+                <th class="w-[5%] cursor-pointer select-none hover:bg-slate-700 transition" data-sort-field="d2">D-2<i class="fa-solid fa-sort ml-1 opacity-40 text-[8px]"></i></th>
+                <th class="w-[5%] cursor-pointer select-none hover:bg-slate-700 transition" data-sort-field="d3">D-3<i class="fa-solid fa-sort ml-1 opacity-40 text-[8px]"></i></th>
+                <th class="w-[5%] cursor-pointer select-none hover:bg-slate-700 transition" data-sort-field="d4">D-4<i class="fa-solid fa-sort ml-1 opacity-40 text-[8px]"></i></th>
+                <th class="w-[5%] cursor-pointer select-none hover:bg-slate-700 transition" data-sort-field="d5">D-5+<i class="fa-solid fa-sort ml-1 opacity-40 text-[8px]"></i></th>
+              </tr>
+            </thead>
+            <tbody id="grid2TableBody" class="font-mono divide-y divide-slate-100 dark:divide-slate-800">
+              <tr><td colspan="14" class="text-center py-6 text-slate-400 dark:text-slate-500 font-sans" data-i18n="ob.emptyImportNew">Silakan import data Excel baru.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="occupancySection" class="flex flex-col gap-3">
+    <div class="flex items-center gap-3 pt-4 pb-1">
+      <i class="fa-solid fa-warehouse text-amber-500"></i>
+      <h2 class="text-base font-extrabold text-slate-800 dark:text-slate-100 whitespace-nowrap" data-i18n="ob.jump.occupancy">Occupancy</h2>
+      <div class="flex-1 h-px bg-slate-300 dark:bg-slate-700"></div>
+    </div>
+    <div class="grid grid-cols-5 gap-3 items-stretch">
+      <div class="col-span-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow duration-200 flex flex-col overflow-hidden">
+        <div class="p-2 bg-slate-800 dark:bg-slate-950 font-bold text-white flex justify-between items-center flex-shrink-0 px-3">
+          <span class="flex items-center gap-2"><i class="fa-solid fa-route text-amber-400"></i> <span data-i18n="ob.occ.innerTitle">Breakdown Volume &amp; Aging Days Inner Island</span></span>
+          <span class="text-[9px] bg-white/20 px-2 py-0.5 rounded-full font-mono" id="routeTotalInfo">Total Jalur: 25</span>
+        </div>
+        <div class="px-3 py-2 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 flex flex-wrap items-center gap-2" data-html2canvas-ignore="true">
+          <div class="relative">
+            <i class="fa-solid fa-magnifying-glass absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 pointer-events-none"></i>
+            <input id="occSearch" type="text" autocomplete="off" data-i18n-placeholder="ob.occ.search" placeholder="Cari rute / hub..." class="text-[11px] pl-6 pr-2 py-1 w-52 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 outline-none focus:border-amber-400" />
+          </div>
+          <div class="flex flex-wrap items-center gap-1">
+            <button type="button" class="occ-chip active" data-occ-filter="all"><span data-i18n="ob.occ.f.all">Semua</span><b data-occ-count="all">0</b></button>
+            <button type="button" class="occ-chip" data-occ-filter="busy"><span data-i18n="ob.occ.f.busy">Padat &gt;50%</span><b data-occ-count="busy">0</b></button>
+            <button type="button" class="occ-chip" data-occ-filter="hv"><span data-i18n="ob.occ.f.hv">Ada HV</span><b data-occ-count="hv">0</b></button>
+            <button type="button" class="occ-chip" data-occ-filter="aging"><span data-i18n="ob.occ.f.aging">Aging D-2+</span><b data-occ-count="aging">0</b></button>
+            <button type="button" class="occ-chip" data-occ-filter="soon"><span data-i18n="ob.occ.f.soon">Berangkat ≤1 jam</span><b data-occ-count="soon">0</b></button>
+          </div>
+          <label class="ml-auto flex items-center gap-1.5 text-[10px] font-bold text-slate-500 dark:text-slate-400"><span data-i18n="ob.occ.sortBy">Urutkan</span>
+            <select id="occSort" class="text-[11px] font-normal rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 px-1.5 py-1 outline-none focus:border-amber-400">
+              <option value="total" data-i18n="ob.occ.s.total">Total Parcel (terbanyak)</option>
+              <option value="depart" data-i18n="ob.occ.s.depart">Next Depart (terdekat)</option>
+              <option value="hv" data-i18n="ob.occ.s.hv">HV terbanyak</option>
+              <option value="aging" data-i18n="ob.occ.s.aging">Aging D-2+ terbanyak</option>
+              <option value="name" data-i18n="ob.occ.s.name">Nama rute (A–Z)</option>
+            </select>
+          </label>
+        </div>
+        <div id="occScroll">
+          <div id="occScrollInner" class="custom-scrollbar">
+          <table class="w-full text-[11px] text-slate-600 dark:text-slate-300 dynamic-table">
+            <thead class="text-white font-bold border-b border-slate-200 dark:border-slate-700">
+              <tr class="bg-slate-800 dark:bg-slate-950">
+                <th rowspan="2" class="occ-st-no bg-slate-800 dark:bg-slate-950" data-i18n="ob.th.no">No</th>
+                <th rowspan="2" class="occ-st-route text-left pl-2 bg-slate-800 dark:bg-slate-950" data-i18n="ob.th.listRoute">List Route</th>
+                <th colspan="2" class="bg-sky-800 dark:bg-sky-900 text-[10px] tracking-wide" data-i18n="ob.occ.grp.schedule">Jadwal Berangkat</th>
+                <th colspan="6" class="bg-slate-600 dark:bg-slate-700 text-[10px] tracking-wide" data-i18n="ob.occ.grp.volume">Volume &amp; Kapasitas</th>
+                <th colspan="6" class="bg-rose-800 dark:bg-rose-900 text-[10px] tracking-wide" data-i18n="ob.occ.grp.aging">Aging Days</th>
+              </tr>
+              <tr class="bg-slate-800 dark:bg-slate-950">
+                <th class="w-36 bg-slate-800 dark:bg-slate-950" data-i18n-title="ob.th.nextSlot" title="Slot keberangkatan berikutnya (dari Schedule Outbound)" data-i18n="ob.th.nextSlot">Next Slot</th>
+                <th class="w-44 bg-slate-800 dark:bg-slate-950" data-i18n-title="ob.th.nextDepart" title="ETD Origin terdekat dari jam device (dari Schedule Outbound)" data-i18n="ob.th.nextDepart">Next Depart</th>
+                <th class="w-12 bg-amber-600 border-x border-amber-700 text-white" data-i18n="ob.th.hv">HV</th>
+                <th class="w-12 bg-slate-800 dark:bg-slate-950" data-i18n="ob.th.liquid">Liquid</th>
+                <th class="w-14 bg-slate-800 dark:bg-slate-950" data-i18n-title="ob.th.bulkyTitle" title="Bulky = Packing Method Individual Packing" data-i18n="ob.th.bulky">Bulky</th>
+                <th class="w-16 bg-slate-800 dark:bg-slate-950" data-i18n-title="ob.th.nonBulkyTitle" title="Non-Bulky = Packing Method Assisted Sorting" data-i18n="ob.th.nonBulky">Non-Bulky</th>
+                <th class="w-16 bg-slate-800 dark:bg-slate-950" data-i18n="ob.th.totalParcel">Total Parcel</th>
+                <th class="w-36 bg-slate-800 dark:bg-slate-950" data-i18n-title="ob.occ.capTitle" title="Estimasi Occupancy terhadap kapasitas per rute" data-i18n="ob.th.capPct">Cap (%)</th>
+                <th class="w-12 bg-slate-800 dark:bg-slate-950">D-Day</th>
+                <th class="w-12 bg-slate-800 dark:bg-slate-950">D-1</th>
+                <th class="w-12 bg-slate-800 dark:bg-slate-950">D-2</th>
+                <th class="w-12 bg-slate-800 dark:bg-slate-950">D-3</th>
+                <th class="w-12 bg-slate-800 dark:bg-slate-950">D-4</th>
+                <th class="w-12 bg-slate-800 dark:bg-slate-950">D-5+</th>
+              </tr>
+            </thead>
+            <tbody id="routeTableBody" class="divide-y divide-slate-100 dark:divide-slate-800 font-mono">
+              <tr><td colspan="16" class="text-center py-6 text-slate-400 dark:text-slate-500 font-sans" data-i18n="ob.emptyPleaseImport">Silakan import data.</td></tr>
+            </tbody>
+          </table>
+          </div>
+        </div>
+        <div class="px-3 py-1.5 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-[10px] text-slate-500 dark:text-slate-400 font-sans flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+          <span class="flex flex-wrap items-center gap-x-3 gap-y-1 font-semibold">
+            <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-emerald-500"></span><span data-i18n="ob.occ.legend.ok">Cap ≤50% Aman</span></span>
+            <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-amber-400"></span><span data-i18n="ob.occ.legend.watch">50–100% Watch</span></span>
+            <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-rose-500"></span><span data-i18n="ob.occ.legend.urgent">&gt;100% Urgent</span></span>
+          </span>
+          <span data-html2canvas-ignore="true" data-i18n="ob.occ.hint">Klik nama rute = breakdown per hub · Klik angka aging = daftar TO</span>
+        </div>
+      </div>
+
+      <div class="col-span-2 flex flex-col gap-2">
+        <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow duration-200 flex flex-col overflow-hidden">
+          <div class="p-2 bg-slate-800 dark:bg-slate-950 font-bold text-white flex justify-between items-center flex-shrink-0 px-3">
+            <span class="flex items-center gap-2"><i class="fa-solid fa-plane-departure text-sky-400"></i> <span data-i18n="ob.occ.outerTitle">Breakdown Volume Outer Island</span></span>
+            <span class="text-[9px] bg-sky-600 px-2 py-0.5 rounded-full font-mono font-bold" id="outerIslandTotalHeader">Total: 0</span>
+          </div>
+          <div class="overflow-x-auto custom-scrollbar">
+            <table class="w-full text-[11px] text-slate-600 dark:text-slate-300 dynamic-table">
+              <thead class="bg-sky-50 dark:bg-slate-800 text-sky-900 dark:text-sky-300 font-bold border-b border-slate-200 dark:border-slate-700 sticky top-0 z-10">
+                <tr>
+                  <th class="w-10" data-i18n="ob.th.no">No</th>
+                  <th class="text-left pl-2" data-i18n="ob.th.receiverName">Receiver Name</th>
+                  <th class="w-20 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300" data-i18n="ob.th.parcel">Parcel</th>
+                  <th class="w-20 bg-sky-100 dark:bg-sky-950/60 text-sky-800 dark:text-sky-300" data-i18n="ob.th.total">Total</th>
+                  <th class="w-20" data-i18n-title="ob.occ.capTitle" title="Estimasi Occupancy terhadap kapasitas per destination" data-i18n="ob.th.capPct">Cap (%)</th>
+                </tr>
+              </thead>
+              <tbody id="outerIslandTableBody" class="divide-y divide-slate-100 dark:divide-slate-800 font-mono">
+                <tr><td colspan="5" class="text-center py-6 text-slate-400 dark:text-slate-500 font-sans" data-i18n="ob.emptyNoOuterIsland">Tidak ada data Outer Island.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        </div>
+
+        <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow duration-200 flex flex-col overflow-hidden flex-1">
+          <div class="p-2 px-3 bg-gradient-to-r from-rose-600 via-red-600 to-amber-600 dark:from-rose-800 dark:via-red-800 dark:to-amber-800 font-bold text-white flex justify-between items-center flex-shrink-0">
+            <span class="flex items-center gap-2"><i class="fa-solid fa-bolt text-yellow-300"></i> <span data-i18n="ob.occ.actionCenterTitle">Priority Action Center — Top 5 Rute Occupancy Tertinggi</span></span>
+            <span class="text-[9px] bg-black/30 px-2.5 py-0.5 rounded-full font-mono flex items-center gap-1.5 border border-white/20"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span><span data-i18n="ob.occ.liveMonitoring">Live Monitoring</span></span>
+          </div>
+          <div class="p-2 grid grid-cols-1 gap-2 overflow-y-auto custom-scrollbar flex-1" style="grid-auto-rows: 1fr;" id="topActionPlanContainer">
+            <div class="text-center text-slate-400 dark:text-slate-500 py-3 font-sans" data-i18n="ob.occ.emptyAnalysis">Belum ada data untuk dianalisis.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="scheduleSection" class="flex flex-col gap-3">
+    <div class="flex items-center gap-3 pt-4 pb-1">
+      <i class="fa-solid fa-calendar-days text-sky-500"></i>
+      <h2 class="text-base font-extrabold text-slate-800 dark:text-slate-100 whitespace-nowrap" data-i18n="ob.sched.title">Schedule Outbound</h2>
+      <div class="flex-1 h-px bg-slate-300 dark:bg-slate-700"></div>
+    </div>
+    <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow duration-200 flex flex-col overflow-hidden">
+      <div class="p-2 bg-slate-800 dark:bg-slate-950 font-bold text-white flex flex-wrap justify-between items-center gap-2 flex-shrink-0 px-3">
+        <span class="flex items-center gap-2"><i class="fa-solid fa-truck-fast text-sky-400"></i> <span data-i18n="ob.sched.sub">Jadwal LH per Route — Schedule V.5</span></span>
+        <span class="flex items-center gap-2">
+          <input id="schedSearch" type="text" data-i18n-placeholder="ob.sched.search" placeholder="Cari route / LH scheme / slot..." class="text-[10px] font-normal text-slate-800 bg-white rounded-md px-2 py-1 w-52 outline-none border border-slate-300 focus:border-sky-400" />
+          <select id="schedDayFilter" class="text-[10px] font-normal text-slate-800 bg-white rounded-md px-1.5 py-1 outline-none border border-slate-300">
+            <option value="" data-i18n="ob.sched.allDays">Semua Hari</option>
+            <option value="today" data-i18n="ob.sched.todayOnly">Aktif Hari Ini</option>
+          </select>
+          <button id="schedHistToggle" type="button" onclick="toggleSchedHistory()" class="text-[10px] font-bold px-2.5 py-1 rounded-md bg-amber-500 hover:bg-amber-400 text-slate-900 transition flex items-center gap-1.5 relative"><i class="fa-solid fa-clock-rotate-left"></i> <span>Riwayat Perubahan</span> <span id="schedHistBtnCount" class="bg-slate-900/80 text-white px-1.5 rounded-full font-mono">0</span><span id="schedHistDot" class="hidden absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse border border-white"></span></button>
+          <button id="schedRefreshBtn" type="button" class="text-[10px] font-bold px-2.5 py-1 rounded-md bg-sky-600 hover:bg-sky-500 transition flex items-center gap-1"><i class="fa-solid fa-rotate"></i> <span data-i18n="ob.sched.refresh">Refresh</span></button>
+          <span class="text-[9px] bg-white/20 px-2 py-0.5 rounded-full font-mono" id="schedCountInfo">Total: 0</span>
+        </span>
+      </div>
+      <div class="overflow-x-auto overflow-y-auto custom-scrollbar" style="max-height: 640px;">
+        <table class="w-full text-[11px] text-slate-600 dark:text-slate-300 dynamic-table">
+          <thead class="bg-slate-100 dark:bg-slate-800/80 text-slate-800 dark:text-slate-200 font-bold border-b border-slate-200 dark:border-slate-700 sticky top-0 z-10">
+            <tr>
+              <th class="w-10" data-i18n="ob.th.no">No</th>
+              <th class="w-28" data-i18n="ob.sched.thCot">COT</th>
+              <th class="w-24" data-i18n="ob.sched.thInd">Sch Indicator</th>
+              <th class="text-left pl-2" data-i18n="ob.sched.thLh">LH Scheme</th>
+              <th class="text-left pl-2" data-i18n="ob.sched.thRoute">Route</th>
+              <th class="w-24" data-i18n="ob.sched.thSlot">Slot</th>
+              <th class="w-32" data-i18n="ob.sched.thUnit">Unit Type</th>
+              <th class="w-28" data-i18n="ob.sched.thEtd">ETD Origin</th>
+              <th class="text-left pl-2" data-i18n="ob.sched.thDays">Schedule Active Day</th>
+            </tr>
+          </thead>
+          <tbody id="scheduleTableBody" class="divide-y divide-slate-100 dark:divide-slate-800 font-mono">
+            <tr><td colspan="9" class="text-center py-6 text-slate-400 dark:text-slate-500 font-sans" data-i18n="ob.sched.loading">Memuat jadwal dari Google Sheet...</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="px-3 py-1.5 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-[10px] text-slate-500 dark:text-slate-400 font-sans" id="schedUpdatedInfo">&nbsp;</div>
+    </div>
+
+    <div id="schedHistPanel" class="hidden fixed inset-0 z-[9999] items-center justify-center bg-black/50 p-4" onclick="if(event.target===this)toggleSchedHistory(false)">
+    <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xl flex flex-col overflow-hidden w-full" style="max-height: 92vh; max-width: min(97vw, 1600px);">
+      <div class="p-2 bg-slate-800 dark:bg-slate-950 font-bold text-white text-[14px] flex justify-between items-center flex-shrink-0 px-3">
+        <span class="flex items-center gap-2"><i class="fa-solid fa-clock-rotate-left text-amber-400"></i> <span>Riwayat Perubahan Schedule</span></span>
+        <span class="flex items-center gap-2">
+          <span class="text-[11px] bg-white/20 px-2 py-0.5 rounded-full font-mono" id="schedHistCount">0 perubahan</span>
+          <button type="button" onclick="toggleSchedHistory(false)" class="hover:bg-white/10 rounded-md px-2 py-0.5 text-sm leading-none" title="Tutup">&times;</button>
+        </span>
+      </div>
+      <div id="schedGuardBanner" class="hidden px-3 py-2 bg-amber-50 dark:bg-amber-950/30 border-b border-amber-200 dark:border-amber-900/60 text-[13px] font-sans text-amber-800 dark:text-amber-300"></div>
+      <div id="schedHistList" class="overflow-y-auto custom-scrollbar divide-y divide-slate-100 dark:divide-slate-800 flex-1 min-h-0">
+        <div class="p-4 text-center text-[13px] text-slate-400 dark:text-slate-500 font-sans">Memuat riwayat perubahan...</div>
+      </div>
+      <div class="px-3 py-1.5 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-[12px] font-medium text-slate-700 dark:text-slate-300 font-sans">
+        <i class="fa-solid fa-circle-info mr-1"></i>Perubahan terdeteksi otomatis saat halaman ini dibuka (dicek ulang tiap 5 menit selama halaman terbuka). Tanggal &amp; jam = waktu terdeteksi (WIB). Versi lama tetap tersimpan dan bisa diunduh.
+      </div>
+    </div>
+    </div>
+  </section>
+
+  <section id="agingPackerSection" class="flex flex-col gap-3">
+    <div class="grid grid-cols-4 gap-3 flex-shrink-0">
+      <div class="group bg-white dark:bg-slate-900 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
+        <div>
+          <p class="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider" data-i18n="ob.packer.totalOperator">Total Operator Active</p>
+          <h3 id="kpiTotalPackers" class="text-xl font-black text-slate-800 dark:text-slate-100 font-mono mt-0.5">0 Person</h3>
+        </div>
+        <div class="p-2.5 bg-slate-100 dark:bg-slate-800 rounded-xl text-slate-400 group-hover:scale-105 transition-transform">
+          <i class="fa-solid fa-users text-xl"></i>
+        </div>
+      </div>
+      
+      <div class="group bg-white dark:bg-slate-900 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
+        <div>
+          <p class="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider" data-i18n="ob.packer.topOperator">Top Packer Operator</p>
+          <h3 id="kpiTopPackerName" class="text-sm font-black text-emerald-600 dark:text-emerald-400 truncate max-w-[180px] mt-0.5">-</h3>
+        </div>
+        <div class="p-2.5 bg-amber-500/10 rounded-xl text-amber-500 group-hover:scale-105 transition-transform">
+          <i class="fa-solid fa-trophy text-xl"></i>
+        </div>
+      </div>
+      
+      <div class="group bg-white dark:bg-slate-900 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
+        <div>
+          <p class="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider" data-i18n="ob.packer.avgOutput">Rata-Rata Output/Packer</p>
+          <h3 id="kpiAvgPackerOutput" class="text-xl font-black text-indigo-600 dark:text-indigo-400 font-mono mt-0.5">0 Parcel</h3>
+        </div>
+        <div class="p-2.5 bg-indigo-500/10 rounded-xl text-indigo-500 group-hover:scale-105 transition-transform">
+          <i class="fa-solid fa-calculator text-xl"></i>
+        </div>
+      </div>
+      
+      <div class="group bg-white dark:bg-slate-900 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
+        <div>
+          <p class="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider" data-i18n="ob.packer.criticalBacklog">Operator Critical Backlog (>D4)</p>
+          <h3 id="kpiCriticalPackerCount" class="text-xl font-black text-rose-600 dark:text-rose-400 font-mono mt-0.5">0 Person</h3>
+        </div>
+        <div class="p-2.5 bg-rose-500/10 rounded-xl text-rose-500 group-hover:scale-105 transition-transform">
+          <i class="fa-solid fa-user-ninja text-xl"></i>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow duration-200 flex flex-col overflow-hidden">
+      <div class="p-2 px-3 bg-slate-800 dark:bg-slate-950 font-bold text-white flex justify-between items-center flex-shrink-0">
+        <span class="flex items-center gap-2">
+          <i class="fa-solid fa-ranking-star text-amber-400 text-sm"></i>
+          <span data-i18n="ob.leaderboard.title">Leaderboard Packer &amp; Distribution Analysis</span>
+        </span>
+        <span class="text-[9px] bg-slate-700 dark:bg-slate-800 px-2.5 py-0.5 rounded-full text-slate-300 font-mono" data-i18n="ob.leaderboard.sortedBy">Sorted by Total Parcel Packed</span>
+      </div>
+      <div id="packerRootCauseCallout" class="hidden px-3 py-1.5 bg-rose-50 dark:bg-rose-950/30 border-b border-rose-200 dark:border-rose-900/60 text-[10px] font-sans text-rose-700 dark:text-rose-300 font-semibold flex items-center gap-1.5">
+        <i class="fa-solid fa-magnifying-glass-chart"></i>
+        <span id="packerRootCauseText"></span>
+      </div>
+      <div id="packerTableWrap" class="overflow-x-auto custom-scrollbar">
+        <table class="w-full text-[11px] text-slate-700 dark:text-slate-200 dynamic-table">
+          <thead class="bg-slate-100 dark:bg-slate-800/80 text-slate-800 dark:text-slate-200 font-bold sticky top-0 z-10 border-b dark:border-slate-700">
+            <tr>
+              <th class="w-10" data-i18n="ob.th.rank">Rank</th>
+              <th class="text-left pl-3" data-i18n="ob.th.operatorName">Operator Name</th>
+              <th class="w-24 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300" data-i18n="ob.th.totalBacklogD2">Total D-2+</th>
+              <th class="w-14">D-2</th>
+              <th class="w-14">D-3</th>
+              <th class="w-14">D-4</th>
+              <th class="w-14">D-5</th>
+              <th class="w-14">D-6+</th>
+              <th class="w-24 text-rose-600 dark:text-rose-400" data-i18n="ob.th.criticalD4">Critical (>D4)</th>
+              <th class="w-32 text-rose-600 dark:text-rose-400 text-left pl-2" data-i18n-title="ob.th.criticalContribTitle" title="Kontribusi operator ini terhadap total backlog kritis (>D4) seluruh DC" data-i18n="ob.th.criticalContrib">Kontribusi Backlog Kritis</th>
+              <th class="w-40 text-left pl-2" data-i18n="ob.th.shareVolume">Share Volume</th>
+            </tr>
+          </thead>
+          <tbody id="packerTableBody" class="divide-y divide-slate-100 dark:divide-slate-800 font-mono">
+            <tr><td colspan="11" class="text-center py-6 text-slate-400 dark:text-slate-500 font-sans" data-i18n="ob.emptyImportExcel">Import data Excel untuk menampilkan rangkuman Packer.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div id="packerShowMoreBar" class="hidden flex items-center justify-between gap-3 px-3 py-2 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 flex-shrink-0">
+        <span id="packerShowMoreInfo" class="text-[11px] text-slate-500 dark:text-slate-400 font-sans"></span>
+        <button id="packerShowMoreBtn" type="button" onclick="togglePackerShowAll()" class="text-[11px] font-bold px-3 py-1 rounded-lg bg-slate-800 text-white hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 transition"></button>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 gap-2">
+      <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow duration-200 flex flex-col overflow-hidden">
+        <div class="p-2 px-3 bg-slate-800 dark:bg-slate-950 font-bold text-white flex justify-between items-center flex-shrink-0">
+          <span class="flex items-center gap-2"><i class="fa-solid fa-chart-column text-amber-400 text-sm"></i> <span data-i18n="ob.chart.agingDistTitle">Distribusi Aging Backlog (D-Day s/d D-6+)</span></span>
+          <span id="agingChartTotalBadge" class="text-[9px] bg-slate-700 dark:bg-slate-800 px-2.5 py-0.5 rounded-full text-slate-300 font-mono">0 Parcel</span>
+        </div>
+        <div class="p-2.5 h-[220px] relative">
+          <canvas id="agingDistributionChart"></canvas>
+        </div>
+      </div>
+
+      <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow duration-200 flex flex-col overflow-hidden">
+        <div class="p-2 px-3 bg-slate-800 dark:bg-slate-950 font-bold text-white flex justify-between items-center flex-shrink-0">
+          <span class="flex items-center gap-2"><i class="fa-solid fa-chart-line text-emerald-400 text-sm"></i> <span data-i18n="ob.chart.trendTitle">Tren Historis DC — Volume &amp; Backlog Kritis Antar Import</span></span>
+          <span id="trendChartInfoBadge" class="text-[9px] bg-slate-700 dark:bg-slate-800 px-2.5 py-0.5 rounded-full text-slate-300 font-mono" data-i18n="ob.chart.noHistory">Belum ada histori</span>
+        </div>
+        <div class="p-2.5 h-[220px] relative">
+          <canvas id="dcTrendChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div id="toModal" onclick="if(event.target===this)closeModal()" class="hidden fixed inset-0 bg-slate-950/70 flex items-center justify-center z-50 p-4 backdrop-blur-sm transition-opacity">
+  <div class="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl max-w-6xl w-full overflow-visible flex flex-col max-h-[88vh]">
+
+    <div id="funnyAlertBox" class="hidden absolute right-1 sm:right-4 z-[60] flex items-end gap-2 pointer-events-none" style="bottom: 100%; margin-bottom: -10px; opacity:0; transition: opacity 1s ease, transform 1s ease; transform: translateY(8px);">
+      <div id="funnyAlertBubble" class="mb-6 max-w-[150px] sm:max-w-[180px] bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-[11px] font-bold leading-snug rounded-2xl rounded-br-sm px-3 py-2 shadow-lg border border-slate-200 dark:border-slate-700"></div>
+      <img id="funnyAlertImg" src="" alt="Funny Alert" class="w-20 h-20 sm:w-28 sm:h-28 object-contain drop-shadow-xl select-none" draggable="false" />
+    </div>
+
+    <div class="bg-slate-900 text-white px-5 py-4 flex justify-between items-start gap-3 border-b dark:border-slate-800 rounded-t-2xl">
+      <div class="min-w-0">
+        <div class="flex items-center gap-2.5 flex-wrap">
+          <h3 id="modalTitle" class="font-extrabold text-lg tracking-wide truncate">List TO Number & Parcel</h3>
+          <span id="modalAgingPill" class="text-xs font-extrabold px-2.5 py-0.5 rounded-full border bg-slate-600 text-white border-slate-500"></span>
+        </div>
+        <p id="modalSubtitle" class="text-xs text-slate-400 mt-1"></p>
+      </div>
+      <button onclick="closeModal()" title="Tutup (Esc)" class="text-slate-400 hover:text-white transition-all text-2xl leading-none w-9 h-9 rounded-lg hover:bg-slate-800 shrink-0">&times;</button>
+    </div>
+
+    <div id="modalSummary" class="px-5 py-3 flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900"></div>
+
+    <div class="px-5 py-2.5 bg-slate-50 dark:bg-slate-900/60 flex items-center justify-between gap-3 flex-wrap border-b border-slate-200 dark:border-slate-800">
+      <div class="flex items-center gap-2 flex-1 min-w-[280px]">
+        <div class="relative flex-1 max-w-sm">
+          <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+          <input id="modalSearchInput" type="text" autocomplete="off" oninput="onModalSearch(this.value)" placeholder="Cari nomor TO atau operator..." class="w-full pl-8 pr-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-sm font-sans focus:outline-none focus:ring-2 focus:ring-amber-400">
+        </div>
+        <select id="modalSortSelect" onchange="onModalSort(this.value)" class="py-1.5 px-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-sm font-sans focus:outline-none focus:ring-2 focus:ring-amber-400">
+          <option value="oldest">Urut: Terlama dulu</option>
+          <option value="parcel">Urut: Parcel terbanyak</option>
+          <option value="operator">Urut: Operator A–Z</option>
+        </select>
+      </div>
+      <div class="flex items-center gap-2">
+        <span id="modalCount" class="text-sm font-semibold text-slate-500 dark:text-slate-400 mr-1"></span>
+        <button onclick="copyToClipboard('TO_ONLY')" class="bg-slate-800 hover:bg-slate-700 text-white font-bold px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 transition shadow-sm border border-slate-700">
+          <i class="fa-solid fa-copy"></i> <span id="copyBtnTextTO">Copy Unique TO</span>
+        </button>
+        <button onclick="copyModalTable()" title="Salin sebagai tabel (bisa langsung paste ke Excel)" class="bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 transition shadow-sm border border-slate-300 dark:border-slate-600">
+          <i class="fa-solid fa-table"></i> <span id="copyBtnTextTable">Copy Tabel</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="px-5 py-2 bg-slate-100 dark:bg-slate-800/80 text-xs font-bold text-slate-600 dark:text-slate-300 grid grid-cols-12 gap-3 border-b dark:border-slate-700">
+      <span class="col-span-3 text-left">NOMOR TO</span>
+      <span class="col-span-2 text-center">TIPE</span>
+      <span class="col-span-1 text-center">PARCEL</span>
+      <span class="col-span-1 text-center">AGING</span>
+      <span class="col-span-3 text-left">OPERATOR</span>
+      <span class="col-span-2 text-right">SELESAI PACK</span>
+    </div>
+    <div class="px-3 py-1 overflow-y-auto custom-scrollbar flex-1 bg-white dark:bg-slate-900 font-sans divide-y divide-slate-100 dark:divide-slate-800" id="modalListContainer"></div>
+    <div class="bg-slate-50 dark:bg-slate-900 px-5 py-2.5 border-t dark:border-slate-800 flex items-center justify-between rounded-b-2xl">
+      <span class="text-xs text-slate-400 dark:text-slate-500 font-sans"><i class="fa-regular fa-hand-pointer mr-1"></i>Klik nomor TO untuk menyalin &middot; Esc untuk menutup</span>
+      <button onclick="closeModal()" class="bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold px-5 py-1.5 rounded-lg text-sm transition">Tutup</button>
+    </div>
+  </div>
+</div>
+
+<div id="destModal" class="hidden fixed inset-0 bg-slate-950/70 flex items-center justify-center z-50 p-4 backdrop-blur-sm transition-opacity">
+  <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl max-w-4xl w-full overflow-hidden flex flex-col max-h-[88vh]">
+    <div class="bg-slate-900 text-white p-3.5 flex justify-between items-center border-b dark:border-slate-800 flex-shrink-0">
+      <div class="flex items-center gap-2 min-w-0">
+        <div class="w-9 h-9 bg-amber-500/10 border border-amber-500/30 rounded-lg flex items-center justify-center shrink-0">
+          <i class="fa-solid fa-location-dot text-amber-400"></i>
+        </div>
+        <div class="min-w-0">
+          <div class="flex items-center gap-2 min-w-0">
+            <h3 id="destModalTitle" class="font-extrabold text-sm tracking-wide truncate">-</h3>
+            <span id="destModalOccBadge" class="shrink-0"></span>
+          </div>
+          <p id="destModalSortCode" class="text-[10px] text-slate-400 mt-0.5">-</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-1.5 shrink-0">
+        <button id="destModalBackBtn" onclick="backToRouteFromDest()" class="hidden text-slate-300 hover:text-white transition-all text-[10px] font-bold px-2.5 py-1.5 rounded-lg hover:bg-slate-800 border border-slate-700 inline-flex items-center gap-1.5">
+          <i class="fa-solid fa-arrow-left text-[9px]"></i> Previous
+        </button>
+        <button onclick="closeDestModal()" class="text-slate-400 hover:text-white transition-all text-xl p-1 rounded-lg hover:bg-slate-800">&times;</button>
+      </div>
+    </div>
+
+    <div class="overflow-y-auto custom-scrollbar flex-1 bg-white dark:bg-slate-900 p-3 space-y-3">
+      <div class="grid grid-cols-3 gap-2">
+        <div class="bg-slate-50 dark:bg-slate-800/60 rounded-xl p-2.5 border border-slate-200/80 dark:border-slate-800">
+          <p class="text-[9px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wide">Total Parcel</p>
+          <p id="destModalTotal" class="text-base font-black text-slate-800 dark:text-slate-100 font-mono mt-0.5">0</p>
+        </div>
+        <div class="bg-slate-50 dark:bg-slate-800/60 rounded-xl p-2.5 border border-slate-200/80 dark:border-slate-800">
+          <div class="flex justify-between items-center mb-1">
+            <p class="text-[9px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wide">Occupancy</p>
+            <span id="destModalOccPct" class="text-[10px] font-extrabold text-amber-500">0%</span>
+          </div>
+          <div class="w-full bg-slate-200 dark:bg-slate-700 h-1.5 rounded-full overflow-hidden">
+            <div id="destModalOccBar" class="h-full rounded-full bg-emerald-500 transition-all duration-500" style="width:0%"></div>
+          </div>
+        </div>
+        <div class="bg-slate-50 dark:bg-slate-800/60 rounded-xl p-2.5 border border-slate-200/80 dark:border-slate-800">
+          <p class="text-[9px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wide">Terakhir Di-Packing</p>
+          <p id="destModalLastPacked" class="text-xs font-black text-slate-800 dark:text-slate-100 font-mono mt-0.5">-</p>
+        </div>
+      </div>
+
+      <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden">
+        <div class="p-2 px-3 bg-slate-800 dark:bg-slate-950 font-bold text-white flex items-center gap-2 text-[11px]">
+          <i class="fa-solid fa-chart-column text-amber-400 text-xs"></i> Distribusi Aging Destination Ini
+        </div>
+        <div class="p-2 h-[150px] relative">
+          <canvas id="destAgingChart"></canvas>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden flex flex-col">
+          <div class="p-2 px-3 bg-slate-800 dark:bg-slate-950 font-bold text-white flex items-center gap-2 text-[11px] flex-shrink-0">
+            <i class="fa-solid fa-user-gear text-amber-400 text-xs"></i> Packer Yang Pernah Pegang
+          </div>
+          <div id="destModalPackerList" class="max-h-[180px] overflow-y-auto custom-scrollbar"></div>
+        </div>
+
+        <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden flex flex-col">
+          <div class="p-2 px-3 bg-slate-800 dark:bg-slate-950 font-bold text-white flex items-center gap-2 text-[11px] flex-shrink-0">
+            <i class="fa-solid fa-timeline text-amber-400 text-xs"></i> Historical Trend (per Import)
+          </div>
+          <div id="destModalTrendList" class="max-h-[180px] overflow-y-auto custom-scrollbar"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-slate-50 dark:bg-slate-900 p-2.5 border-t dark:border-slate-800 text-right flex-shrink-0">
+      <button onclick="closeDestModal()" class="bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold px-5 py-1.5 rounded-lg text-[11px] transition">Tutup</button>
+    </div>
+  </div>
+</div>
+
+<div id="routeModal" class="hidden fixed inset-0 bg-slate-950/70 flex items-center justify-center z-50 p-4 backdrop-blur-sm transition-opacity">
+  <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden flex flex-col max-h-[88vh]">
+    <div class="bg-slate-900 text-white p-3.5 flex justify-between items-center border-b dark:border-slate-800 flex-shrink-0">
+      <div class="flex items-center gap-2 min-w-0">
+        <div class="w-9 h-9 bg-amber-500/10 border border-amber-500/30 rounded-lg flex items-center justify-center shrink-0">
+          <i class="fa-solid fa-route text-amber-400"></i>
+        </div>
+        <div class="min-w-0">
+          <h3 id="routeModalTitle" class="font-extrabold text-sm tracking-wide truncate">-</h3>
+          <p id="routeModalSubtitle" class="text-[10px] text-slate-400 mt-0.5">-</p>
+        </div>
+      </div>
+      <button onclick="closeRouteModal()" class="text-slate-400 hover:text-white transition-all text-xl p-1 rounded-lg hover:bg-slate-800 shrink-0">&times;</button>
+    </div>
+
+    <div class="overflow-y-auto custom-scrollbar flex-1 bg-white dark:bg-slate-900 p-3 space-y-2">
+      <p class="text-[10px] text-slate-500 dark:text-slate-400 font-sans px-0.5">Klik salah satu Hub di bawah untuk lihat detail lengkapnya (packer, trend, dsb).</p>
+      <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden">
+        <div class="grid grid-cols-12 gap-1 px-3 py-1.5 bg-slate-800 dark:bg-slate-950 text-white text-[10px] font-bold sticky top-0 z-10">
+          <span class="col-span-1">No</span>
+          <span class="col-span-5">Nama Hub</span>
+          <span class="col-span-2 text-center">Total</span>
+          <span class="col-span-2 text-center">Status</span>
+          <span class="col-span-2 text-right">Action</span>
+        </div>
+        <div id="routeModalHubList" class="divide-y divide-slate-100 dark:divide-slate-800 font-mono text-[11px]"></div>
+      </div>
+    </div>
+
+    <div class="bg-slate-50 dark:bg-slate-900 p-2.5 border-t dark:border-slate-800 text-right flex-shrink-0">
+      <button onclick="closeRouteModal()" class="bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold px-5 py-1.5 rounded-lg text-[11px] transition">Tutup</button>
+    </div>
+  </div>
+</div>
+
+<div id="logUpdateModal" class="hidden fixed inset-0 bg-slate-950/70 flex items-center justify-center z-50 p-4 backdrop-blur-sm transition-opacity">
+  <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden flex flex-col max-h-[88vh]">
+    <div class="bg-slate-900 text-white p-3.5 flex justify-between items-center border-b dark:border-slate-800 flex-shrink-0">
+      <div class="flex items-center gap-2 min-w-0">
+        <div class="w-9 h-9 bg-amber-500/10 border border-amber-500/30 rounded-lg flex items-center justify-center shrink-0">
+          <i class="fa-solid fa-clock-rotate-left text-amber-400"></i>
+        </div>
+        <div class="min-w-0">
+          <h3 class="font-extrabold text-sm tracking-wide truncate">Log Update — Riwayat Import File</h3>
+          <p class="text-[10px] text-slate-400 mt-0.5">Daftar file yang pernah diimport, jam berapa, dan siapa yang import</p>
+        </div>
+      </div>
+      <button onclick="closeLogUpdateModal()" class="text-slate-400 hover:text-white transition-all text-xl p-1 rounded-lg hover:bg-slate-800 shrink-0">&times;</button>
+    </div>
+
+    <div class="overflow-y-auto custom-scrollbar flex-1 bg-white dark:bg-slate-900 p-3 space-y-2">
+      <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-hidden">
+        <div class="grid grid-cols-12 gap-1 px-3 py-1.5 bg-slate-800 dark:bg-slate-950 text-white text-[10px] font-bold sticky top-0 z-10">
+          <span class="col-span-5">Nama File</span>
+          <span class="col-span-3">Jam Import</span>
+          <span class="col-span-3">Diimport Oleh</span>
+          <span class="col-span-1 text-right">Aksi</span>
+        </div>
+        <div id="logUpdateList" class="divide-y divide-slate-100 dark:divide-slate-800 font-mono text-[11px]">
+          <div class="p-4 text-center text-slate-400 dark:text-slate-500 font-sans">Memuat riwayat import...</div>
+        </div>
+      </div>
+      <p class="text-[10px] text-slate-400 dark:text-slate-500 font-sans px-1">
+        <i class="fa-solid fa-circle-info mr-1"></i>Menghapus log di sini cuma menghapus riwayat/audit trail-nya. Kalau yang dihapus adalah import <b>paling terakhir</b> (yang lagi aktif ditampilkan), data yang lagi tampil di dashboard ini ikut ke-reset juga.
+      </p>
+    </div>
+
+    <div class="bg-slate-50 dark:bg-slate-900 p-2.5 border-t dark:border-slate-800 text-right flex-shrink-0">
+      <button onclick="closeLogUpdateModal()" class="bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold px-5 py-1.5 rounded-lg text-[11px] transition">Tutup</button>
+    </div>
+  </div>
+</div>
+
+<script src="assets/js/outbound/feedback-config.js"></script>
+<script src="assets/js/outbound/i18n-config.js"></script>
+<script src="assets/js/outbound/state-and-compression.js"></script>
+<script src="assets/js/outbound/firebase-sync.js"></script>
+<script src="assets/js/outbound/log-update.js"></script>
+<script src="assets/js/outbound/grid-state-and-sla.js"></script>
+<script src="assets/js/outbound/linehaul-schedule.js"></script>
+<script src="assets/js/outbound/layout-and-theme.js"></script>
+<script src="assets/js/outbound/occupancy-table.js"></script>
+<script src="assets/js/outbound/data-processing.js"></script>
+<script src="assets/js/outbound/to-modal-and-alerts.js"></script>
+<script src="assets/js/outbound/drilldown-and-history.js"></script>
+<script src="assets/js/outbound/hub-sort-and-packer.js"></script>
+<script src="assets/js/outbound/charts.js"></script>
+<script src="assets/js/outbound/grids.js"></script>
+<script src="assets/js/outbound/dashboard-render.js"></script>
+<script src="assets/js/outbound/init.js"></script>
+<script src="assets/js/outbound/app-shell-bridge.js"></script>
+<script src="assets/js/outbound/odyssey-label.js"></script>
+<script src="assets/js/outbound/schedule-outbound.js"></script>
+<script src="assets/js/outbound/schedule-backup.js"></script>
+</body>
+</html>

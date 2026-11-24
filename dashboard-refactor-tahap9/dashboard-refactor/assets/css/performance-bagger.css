@@ -1,0 +1,534 @@
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Inter', sans-serif; font-size: 11px; }
+  .font-mono { font-family: 'JetBrains Mono', monospace; }
+  .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
+  .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+  .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+  
+  table { border-collapse: separate; border-spacing: 0; width: 100%; }
+  th, td { padding: 8px 10px !important; line-height: 1.3; border-bottom: 1px solid #e2e8f0; text-align: center; font-size: 12px; }
+  .dark th, .dark td { border-bottom-color: #334155; }
+  th:first-child, td:first-child { text-align: left; }
+  thead th { position: sticky; top: 0; background: #f8fafc; z-index: 1; white-space: nowrap; }
+  .dark thead th { background: #0f172a; color: #f1f5f9; }
+  thead tr.bg-shopee th { background: #7a1224; color: #fff; font-size: 12px; letter-spacing: 0.02em; cursor: pointer; user-select: none; }
+  thead tr.bg-shopee th:hover { background: #9c2436; }
+  thead tr.bg-shopee th .sort-icon { font-size: 9px; margin-left: 4px; opacity: 0.6; }
+  thead tr.bg-shopee th.sort-active .sort-icon { opacity: 1; }
+  /* ==== SIDEBAR NAVIGASI — disamain persis kayak Inventory Control (tema minimalis hitam-putih) ==== */
+  :root {
+    --tw-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+      "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji",
+      "Segoe UI Symbol", "Noto Color Emoji";
+    --bg-sidebar: #000000;
+    --border-sidebar: #262626;
+    --text-sidebar: #ffffff;
+    --text-sidebar-muted: #9ca3af;
+    --bg-sidebar-card: #0a0a0a;
+  }
+  .hamburger-btn {
+    position: fixed; top: 16px; left: 16px; z-index: 120;
+    width: 40px; height: 40px; border-radius: 8px;
+    background: var(--bg-sidebar); color: #fff; border: 1px solid var(--border-sidebar);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    font-family: var(--tw-sans);
+  }
+  .hamburger-btn:hover { background: #171717; }
+
+  /* ===== Language Switcher & Saran/Masukan (di atas Logout) ===== */
+  .fb-board-backdrop {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(2px);
+    z-index: 300; display: none; align-items: center; justify-content: center; padding: 20px;
+  }
+  .fb-board-backdrop.open { display: flex; }
+  .fb-board-card {
+    width: 100%; max-width: 420px; max-height: 80vh; background: var(--bg-sidebar);
+    border: 1px solid var(--border-sidebar); border-radius: 12px; display: flex; flex-direction: column;
+    overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.4); font-family: var(--tw-sans);
+  }
+  .fb-board-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 16px; background: var(--bg-sidebar-card); border-bottom: 1px solid var(--border-sidebar); flex-shrink: 0;
+  }
+  .fb-board-header h3 { margin: 0; font-size: 15px; font-weight: 700; color: #fff; }
+  .fb-board-header button { background: transparent; border: none; color: #9ca3af; font-size: 18px; cursor: pointer; padding: 2px 6px; }
+  .fb-board-header button:hover { color: #fff; }
+  .fb-board-form { padding: 12px 16px; border-bottom: 1px solid var(--border-sidebar); flex-shrink: 0; }
+  .fb-board-form textarea {
+    width: 100%; min-height: 70px; resize: vertical; border-radius: 8px; border: 1px solid var(--border-sidebar);
+    background: var(--bg-sidebar-card); color: #fff; padding: 10px 12px; font-size: 13px; font-family: var(--tw-sans);
+  }
+  .fb-board-form textarea:focus { outline: none; border-color: #f59e0b; }
+  .fb-board-form-footer { display: flex; justify-content: flex-end; margin-top: 8px; }
+  .fb-board-submit-btn {
+    padding: 8px 18px; border: none; border-radius: 7px; background: #f59e0b; color: #000;
+    font-weight: 700; font-size: 13px; cursor: pointer; font-family: var(--tw-sans);
+  }
+  .fb-board-submit-btn:hover { background: #fbbf24; }
+  .fb-board-submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .fb-board-list { overflow-y: auto; flex-grow: 1; padding: 8px 0; }
+  .fb-board-item { padding: 10px 16px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+  .fb-board-item-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 4px; }
+  .fb-board-item-user { font-size: 11.5px; font-weight: 700; color: #f59e0b; }
+  .fb-board-item-time { font-size: 10px; color: var(--text-sidebar-muted); flex-shrink: 0; }
+  .fb-board-item-msg { font-size: 13px; color: #e5e5e5; line-height: 1.5; white-space: pre-wrap; word-break: break-word; margin: 0; }
+  .fb-board-empty { padding: 30px 16px; text-align: center; color: var(--text-sidebar-muted); font-size: 12.5px; }
+
+  #pbDetailModal {
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.25s ease, visibility 0.25s ease;
+  }
+  #pbDetailModal.active {
+    opacity: 1;
+    visibility: visible;
+  }
+  #pbDetailModal .modal-card {
+    transform: scale(0.9) translateY(-10px);
+    transition: transform 0.25s ease;
+  }
+  #pbDetailModal.active .modal-card {
+    transform: scale(1) translateY(0);
+  }
+
+  /* ==== HALL OF FAME CLICKABLE + MODAL STATISTIK PACKED (TOP 20) ==== */
+  section.pbx-hof { cursor: pointer; transition: box-shadow .2s ease; }
+  section.pbx-hof:hover { box-shadow: 0 6px 20px rgba(217,165,0,.22); }
+  section.pbx-hof:focus-visible { outline: 2px solid #9c2436; outline-offset: 2px; }
+  .pbx-hof-hint { display: inline-flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 11px; font-weight: 700; color: #9c2436; }
+  html.dark .pbx-hof-hint { color: #fcd34d; }
+
+  #pbStatModal { opacity: 0; visibility: hidden; transition: opacity .25s ease, visibility .25s ease; }
+  #pbStatModal.active { opacity: 1; visibility: visible; }
+  #pbStatModal .modal-card { transform: scale(.9) translateY(-10px); transition: transform .25s ease; }
+  #pbStatModal.active .modal-card { transform: scale(1) translateY(0); }
+  #pbStatModal .pbs{--s0:#f1f5f9;--s1:#fff;--bd:#e2e8f0;--tx:#0f172a;--mu:#64748b;--acc:#059669;--ico-bg:rgba(122,18,36,.09);--ico:#7a1224;
+    width:100%;max-width:980px;max-height:92vh;max-height:92dvh;display:flex;flex-direction:column;overflow:hidden;border-radius:16px;background:var(--s0);color:var(--tx);border:1px solid var(--bd);box-shadow:0 24px 70px rgba(0,0,0,.45);font-variant-numeric:tabular-nums}
+  .dark #pbStatModal .pbs{--s0:#0b1424;--s1:#111d33;--bd:#1f2e4a;--tx:#f1f5f9;--mu:#94a3b8;--acc:#34d399;--ico-bg:rgba(244,63,94,.14);--ico:#fb7185}
+  #pbStatModal .pbs{max-width:1400px;max-height:95vh;max-height:95dvh}
+  .pbs-tabs{display:flex;gap:4px;padding:10px 16px 0;background:var(--s1);border-bottom:1px solid var(--bd);flex-shrink:0;overflow-x:auto}
+  .pbs-tab{display:inline-flex;align-items:center;gap:8px;padding:13px 22px;font-size:14.5px;font-weight:700;color:var(--mu);background:transparent;border:0;border-bottom:3px solid transparent;cursor:pointer;font-family:inherit;white-space:nowrap}
+  .pbs-tab:hover{color:var(--tx)}
+  .pbs-tab[aria-selected="true"]{color:var(--ico);border-bottom-color:var(--ico)}
+  .pbs-tab:focus-visible{outline:2px solid #9c2436;outline-offset:-2px;border-radius:6px}
+  .pbs-controls{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-end;padding:14px 18px;position:sticky;top:0;z-index:3}
+  .pbs-controls .pbd-sel{font-size:14px;padding:8px 12px}
+  .pbs-legend{display:flex;gap:16px;flex-wrap:wrap;margin-left:auto;align-items:center;font-size:12.5px;color:var(--mu)}
+  .pbs-legend span{display:inline-flex;align-items:center;gap:7px}
+  .pbs-legend i{width:16px;height:16px;border-radius:5px;border:1px solid;display:inline-block}
+  .pbs-legend i.ok{background:rgba(16,185,129,.22);border-color:rgba(16,185,129,.55)}
+  .pbs-legend i.low{background:rgba(244,63,94,.18);border-color:rgba(244,63,94,.55)}
+  .pbs-legend i.none{background:var(--s0);border-color:var(--bd)}
+  .pbs-ctl{display:flex;flex-direction:column;gap:5px;font-size:12.5px;color:var(--mu);font-weight:600}
+  .pbs-note{font-size:13.5px;color:var(--mu)}
+  .pbs-list{list-style:none;margin:0;padding:0}
+  .pbs-row{display:grid;grid-template-columns:46px minmax(200px,1.2fr) minmax(140px,2fr) 150px;gap:10px 18px;align-items:center;padding:16px 20px;border-bottom:1px solid var(--bd);cursor:pointer}
+  .pbs-row:last-child{border-bottom:0}
+  .pbs-row:hover,.pbs-row:focus-visible{background:var(--s0);outline:none}
+  .pbs-row .pbx-medal{width:38px;height:38px;font-size:16px}
+  .pbs-who{min-width:0}
+  .pbs-who b{display:block;font-size:16px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pbs-who small{display:block;font-size:12.5px;color:var(--mu);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pbs-bar{height:14px;border-radius:99px;background:var(--s0);border:1px solid var(--bd);overflow:hidden}
+  .pbs-bar i{display:block;height:100%;border-radius:99px}
+  .pbs-bar i.ok{background:#10b981}.pbs-bar i.mid{background:#f59e0b}.pbs-bar i.low{background:#f43f5e}
+  .pbs-num{text-align:right}
+  .pbs-num b{display:block;font-size:21px;font-weight:800}
+  .pbs-num small{display:block;font-size:13px;font-weight:700;margin-top:3px}
+  .pbs-num small.ok{color:#059669}.pbs-num small.mid{color:#b45309}.pbs-num small.low{color:#e11d48}
+  .dark .pbs-num small.ok{color:#34d399}.dark .pbs-num small.mid{color:#fbbf24}.dark .pbs-num small.low{color:#fb7185}
+  .pbs-hours{grid-column:2 / -1;display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:8px;margin:4px 0 2px}
+  .pbs-h{display:flex;flex-direction:column;align-items:center;padding:7px 4px;border-radius:9px;border:1px solid var(--bd);background:var(--s0);line-height:1.2}
+  .pbs-h em{font-style:normal;font-size:12px;color:var(--mu);font-weight:600}
+  .pbs-h b{font-size:17px;font-weight:800}
+  .pbs-h.ok{background:rgba(16,185,129,.12);border-color:rgba(16,185,129,.35)}
+  .pbs-h.ok b{color:#059669}.dark .pbs-h.ok b{color:#34d399}
+  .pbs-h.low{background:rgba(244,63,94,.10);border-color:rgba(244,63,94,.35)}
+  .pbs-h.low b{color:#e11d48}.dark .pbs-h.low b{color:#fb7185}
+  .pbs-h.none{opacity:.55}.pbs-h.none b{color:var(--mu);font-weight:600}
+  .pbs-h.sel{outline:2px solid var(--ico);outline-offset:1px}
+  .pbs-empty{padding:40px 14px;text-align:center;color:var(--mu);font-size:14px}
+  .pbs-colheads{display:none}
+  .pbs-foot{padding:12px 18px;border-top:1px solid var(--bd);background:var(--s0);border-radius:0 0 12px 12px;font-size:12px;color:var(--mu)}
+  @media (max-width:640px){
+    .pbs-row{grid-template-columns:30px 1fr 96px}
+    .pbs-bar{grid-column:2 / 4}
+    .pbs-hours{grid-column:1 / -1}
+  }
+  @media (prefers-reduced-motion:reduce){#pbStatModal,#pbStatModal .modal-card{transition:none}}
+
+  /* ==== TOP 20 FULLSCREEN: 1 layar, 2 kolom x 10 baris (layar >= 1000px) ==== */
+  @media (min-width:1000px){
+    #pbStatModal{padding:0 !important;align-items:stretch !important;justify-content:stretch !important;background:rgba(2,6,23,.88)}
+    #pbStatModal .pbs{max-width:none;max-height:none;width:100vw;height:100vh;height:100dvh;border-radius:0;border:0;box-shadow:none}
+    #pbStatModal .pbs .pbd-head{padding:8px 18px}
+    #pbStatModal .pbs-tab{padding:9px 20px;font-size:14px}
+    #pbStatModal .pbs-tabs{padding-top:4px}
+
+    /* baris atas: filter (kiri) + 3 KPI (kanan) sejajar; di bawahnya daftar Top 20 */
+    #pbStatModal .pbd-body{display:grid;grid-template-columns:auto minmax(0,1fr);grid-template-rows:auto minmax(calc(10 * 68px + 58px),1fr);gap:8px;padding:8px 14px}
+    #pbStatModal .pbs-controls{grid-column:1;grid-row:1;position:static;padding:6px 14px;gap:14px}
+    #pbStatModal .pbs-controls .pbd-sel{font-size:14px;padding:5px 10px}
+    #pbStatModal .pbs-controls .pbs-legend{margin-left:0;font-size:12px;gap:12px}
+    #pbStatModal .pbs-kpis{grid-column:2;grid-row:1;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+    #pbStatModal .pbs-kpis .pbd-kpi{padding:6px 12px;gap:10px}
+    #pbStatModal .pbs-kpis .pbd-ico{width:32px;height:32px;font-size:14px}
+    #pbStatModal .pbs-kpis .pbd-val{font-size:21px}
+
+    #pbStatModal .pbs-listpanel{grid-column:1 / -1;grid-row:2;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+    #pbStatModal .pbs-listpanel .pbd-phead{padding:6px 14px}
+    #pbStatModal .pbs-foot{padding:6px 14px;border-radius:0}
+    #pbStatModal .pbs-list{flex:1 1 auto;min-height:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:repeat(10,minmax(0,1fr));grid-auto-flow:column}
+    /* dua kartu terpisah: #1-10 (kiri, aksen emas) dan #11-20 (kanan, aksen abu), ada jarak di antaranya */
+    #pbStatModal .pbs-listpanel{background:transparent;border:0;border-radius:0}
+    #pbStatModal .pbs-listpanel .pbd-phead{padding:4px 2px 8px}
+    #pbStatModal .pbs-list{column-gap:20px}
+    #pbStatModal .pbs-list > .pbs-row{background-color:var(--s1);border-left:1px solid var(--bd);border-right:1px solid var(--bd);border-bottom:1px solid var(--bd)}
+    #pbStatModal .pbs-list > .pbs-row:nth-child(even){background-image:linear-gradient(rgba(100,116,139,.08),rgba(100,116,139,.08))}
+    #pbStatModal .pbs-list > .pbs-row:nth-child(1),#pbStatModal .pbs-list > .pbs-row:nth-child(11){border-top:4px solid #d9a500;border-radius:12px 12px 0 0}
+    #pbStatModal .pbs-list > .pbs-row:nth-child(11){border-top-color:#64748b}
+    #pbStatModal .pbs-list > .pbs-row:nth-child(10),#pbStatModal .pbs-list > .pbs-row:nth-child(20){border-radius:0 0 12px 12px}
+    #pbStatModal .pbs-foot{background:transparent;border-top:0;padding:8px 2px 2px}
+    /* header kolom berwarna di atas tiap kartu */
+    #pbStatModal .pbs-listpanel > .pbd-phead{display:none}
+    #pbStatModal .pbs-colheads{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:20px}
+    #pbStatModal .pbs-colhead{display:flex;align-items:center;justify-content:space-between;gap:10px;height:32px;padding:0 16px;border-radius:12px 12px 0 0;color:#fff;font-size:14px;font-weight:800;letter-spacing:.06em}
+    #pbStatModal .pbs-colhead{border:1px solid var(--bd);border-bottom:0;border-top-width:3px}
+    #pbStatModal .pbs-colhead.gold{background:#fbf3d9;color:#6b4e00;border-top-color:#d9a500}
+    #pbStatModal .pbs-colhead.slate{background:#e9eef4;color:#334155;border-top-color:#64748b}
+    .dark #pbStatModal .pbs-colhead.gold{background:rgba(217,165,0,.14);color:#fcd34d}
+    .dark #pbStatModal .pbs-colhead.slate{background:rgba(148,163,184,.14);color:#cbd5e1}
+    #pbStatModal .pbs-colhead small{font-size:11px;font-weight:600;letter-spacing:0;opacity:.8}
+    #pbStatModal .pbs-list > .pbs-row:nth-child(1),#pbStatModal .pbs-list > .pbs-row:nth-child(11){border-top:0;border-radius:0}
+    #pbStatModal .pbs-colhead.gold small{font-size:13px;font-weight:700;opacity:.85}
+    #pbStatModal .pbs-num small{padding:1px 9px;border-radius:999px;font-weight:800}
+    #pbStatModal .pbs-num small.ok{background:rgba(16,185,129,.15)}
+    #pbStatModal .pbs-num small.mid{background:rgba(245,158,11,.18)}
+    #pbStatModal .pbs-num small.low{background:rgba(244,63,94,.14)}
+    #pbStatModal .pbs-h.none{opacity:.45}
+    /* nomor ranking lebih besar + kontras tinggi */
+    #pbStatModal .pbs-row{grid-template-columns:48px minmax(0,1fr) minmax(90px,24%) 190px}
+    #pbStatModal .pbs-row.has-h{grid-template-columns:48px minmax(0,1fr) auto}
+    #pbStatModal .pbs-row .pbx-medal{width:38px;height:38px;font-size:19px;font-weight:900}
+    #pbStatModal .pbs-row .pbx-medal-n{background:#dbe3ee;color:#0f172a;border:2px solid #94a3b8}
+    .dark #pbStatModal .pbs-row .pbx-medal-n{background:#22314d;color:#f8fafc;border-color:#64748b}
+    /* pembatas tengah antara TOP 1-10 dan TOP 11-20: jarak lebih lebar + garis vertikal */
+    #pbStatModal .pbs-list,#pbStatModal .pbs-colheads{position:relative;column-gap:36px}
+    #pbStatModal .pbs-list::before,#pbStatModal .pbs-colheads::before{content:'';position:absolute;top:0;bottom:0;left:50%;width:3px;transform:translateX(-50%);background:#94a3b8;opacity:.6;border-radius:2px}
+    .dark #pbStatModal .pbs-list::before,.dark #pbStatModal .pbs-colheads::before{background:#64748b;opacity:.8}
+    #pbStatModal .pbs-list > .pbs-empty{grid-column:1 / -1;grid-row:1 / -1;align-self:center}
+
+    /* baris default (Daily / Weekly / Monthly): medal | nama | bar | angka */
+    #pbStatModal .pbs-row{grid-template-columns:34px minmax(0,1fr) minmax(90px,24%) 190px;gap:0 14px;padding:3px 14px;align-items:center;align-content:center}
+    #pbStatModal .pbs-row .pbx-medal{width:30px;height:30px;font-size:14px}
+    #pbStatModal .pbs-who b{font-size:clamp(14px,.88vw,17px)}
+    #pbStatModal .pbs-who small{font-size:clamp(11px,.64vw,12.5px);margin-top:1px}
+    #pbStatModal .pbs-bar{height:12px}
+    #pbStatModal .pbs-num{display:flex;align-items:baseline;justify-content:flex-end;gap:7px;white-space:nowrap}
+    #pbStatModal .pbs-num b,#pbStatModal .pbs-num small{display:inline;margin:0}
+    #pbStatModal .pbs-num b{font-size:clamp(17px,1.15vw,23px)}
+    #pbStatModal .pbs-num small{font-size:clamp(11px,.68vw,13px)}
+
+    /* tab Hourly: nama + total satu baris, strip jam di bawahnya (tanpa bar, % sudah ada warnanya) */
+    #pbStatModal .pbs-row.has-h{grid-template-columns:34px minmax(0,1fr) auto;row-gap:2px}
+    #pbStatModal .pbs-row.has-h .pbx-medal{grid-column:1;grid-row:1 / span 2;align-self:center}
+    #pbStatModal .pbs-row.has-h .pbs-who{grid-column:2;grid-row:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    #pbStatModal .pbs-row.has-h .pbs-who b,#pbStatModal .pbs-row.has-h .pbs-who small{display:inline}
+    #pbStatModal .pbs-row.has-h .pbs-who small{margin-left:10px}
+    #pbStatModal .pbs-row.has-h .pbs-bar{display:none}
+    #pbStatModal .pbs-row.has-h .pbs-num{grid-column:3;grid-row:1}
+    #pbStatModal .pbs-row.has-h .pbs-num b{font-size:clamp(16px,.98vw,20px)}
+    #pbStatModal .pbs-row.has-h .pbs-hours{grid-column:2 / -1;grid-row:2}
+    #pbStatModal .pbs-hours{grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:4px;margin:0}
+    #pbStatModal .pbs-h{padding:2px 1px;border-radius:6px}
+    #pbStatModal .pbs-h em{font-size:clamp(9px,.56vw,11px)}
+    #pbStatModal .pbs-h b{font-size:clamp(11px,.82vw,16px)}
+  }
+  @media print{#pbStatModal,.pbx-hof-hint{display:none !important}}
+
+  /* ==== MODAL DETAIL OPERATOR (redesign) ==== */
+  #pbDetailModal .pbd{--s0:#f1f5f9;--s1:#fff;--bd:#e2e8f0;--tx:#0f172a;--mu:#64748b;--acc:#059669;--ico-bg:rgba(122,18,36,.09);--ico:#7a1224;
+    width:100%;max-width:980px;max-height:92vh;max-height:92dvh;display:flex;flex-direction:column;overflow:hidden;border-radius:16px;background:var(--s0);color:var(--tx);border:1px solid var(--bd);box-shadow:0 24px 70px rgba(0,0,0,.45);font-variant-numeric:tabular-nums}
+  .dark #pbDetailModal .pbd{--s0:#0b1424;--s1:#111d33;--bd:#1f2e4a;--tx:#f1f5f9;--mu:#94a3b8;--acc:#34d399;--ico-bg:rgba(244,63,94,.14);--ico:#fb7185}
+  .pbd-head{display:flex;align-items:center;gap:14px;padding:14px 18px;background:linear-gradient(100deg,#4e0b17,#7a1224 55%,#9c2436);color:#fff;flex-shrink:0}
+  .pbd-avatar{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;flex-shrink:0;font-weight:800;font-size:15px;background:rgba(255,255,255,.12);border:2px solid rgba(255,255,255,.35)}
+  .pbd-id{min-width:0;flex:1}
+  .pbd-name-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .pbd-name-row h2{font-size:17px;font-weight:800;line-height:1.2}
+  .pbd-streak{font-size:10.5px;font-weight:700;background:#f43f5e;padding:2px 9px;border-radius:99px}
+  .pbd-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+  .pbd-chip{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;padding:3px 10px;border-radius:99px;background:rgba(0,0,0,.22);border:1px solid rgba(255,255,255,.18);color:#fde8ec}
+  .pbd-actions{display:flex;align-items:center;gap:8px;margin-left:auto}
+  .pbd-pdf{display:inline-flex;align-items:center;gap:7px;background:#fbbf24;color:#1c1917;font-weight:700;font-size:12.5px;padding:9px 16px;border-radius:10px;border:0;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.25)}
+  .pbd-pdf:hover{background:#fcd34d}
+  .pbd-close{width:36px;height:36px;border-radius:10px;border:0;background:transparent;color:rgba(255,255,255,.85);font-size:20px;cursor:pointer}
+  .pbd-close:hover{background:rgba(255,255,255,.14);color:#fff}
+  .pbd-pdf:focus-visible,.pbd-close:focus-visible{outline:2px solid #fff;outline-offset:2px}
+  .pbd-body{flex:1;min-height:0;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:14px}
+  .pbd-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
+  .pbd-kpi,.pbd-panel{background:var(--s1);border:1px solid var(--bd);border-radius:12px}
+  .pbd-kpi{display:flex;align-items:center;gap:12px;padding:14px}
+  .pbd-ico{width:42px;height:42px;border-radius:10px;display:grid;place-items:center;flex-shrink:0;font-size:17px;background:var(--ico-bg);color:var(--ico)}
+  .pbd-lbl{font-size:11.5px;color:var(--mu)}
+  .pbd-val{font-size:24px;font-weight:800;line-height:1.15}
+  .pbd-sub{font-size:11px;color:var(--mu);margin-top:3px}
+  .pbd-ach{display:inline-flex;align-items:center;gap:6px;font-weight:700;font-size:12.5px;padding:4px 11px;border-radius:99px;margin-top:3px}
+  .pbd-ach.ok{background:rgba(16,185,129,.14);color:#059669}.pbd-ach.mid{background:rgba(245,158,11,.16);color:#b45309}.pbd-ach.bad{background:rgba(244,63,94,.14);color:#e11d48}
+  .dark .pbd-ach.ok{color:#34d399}.dark .pbd-ach.mid{color:#fbbf24}.dark .pbd-ach.bad{color:#fb7185}
+  .pbd-phead{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:12px 14px}
+  .pbd-ptitle{font-size:13px;font-weight:700;display:flex;align-items:center;gap:8px}
+  .pbd-ptitle i{color:var(--mu)}
+  .pbd-hint{font-size:11px;color:var(--mu);font-weight:400}
+  .pbd-legend{display:flex;gap:14px;font-size:11px;color:var(--mu)}
+  .pbd-lg{display:inline-flex;align-items:center;gap:6px}
+  .pbd-sw{width:10px;height:10px;border-radius:2px;background:#10b981;display:inline-block}
+  .pbd-sw.dash{height:0;width:16px;border-radius:0;background:none;border-top:2px dashed #f59e0b}
+  .pbd-chart{position:relative;height:200px;padding:0 14px 6px}
+  .pbd-chart.h{height:190px}
+  .pbd-sel{background:var(--s0);color:var(--tx);border:1px solid var(--bd);border-radius:8px;padding:6px 10px;font-size:12px;font-family:inherit}
+  .pbd-sel:focus{outline:2px solid #9c2436;outline-offset:1px}
+  #pbHourInfo{padding:0 14px 12px;font-size:11px;color:var(--mu)}
+  .pbd-wrap{overflow-x:auto}
+  #pbDetailModal .pbd-table{min-width:560px}
+  #pbDetailModal .pbd-table th,#pbDetailModal .pbd-table td{padding:10px 14px !important;font-size:12.5px;border-bottom:1px solid var(--bd);text-align:left;color:var(--tx)}
+  #pbDetailModal .pbd-table thead th{position:static;background:var(--s0);color:var(--mu);font-size:11.5px;font-weight:600}
+  #pbDetailModal .pbd-table .num{text-align:right;font-weight:600}
+  #pbDetailModal .pbd-table th.num{font-weight:600}
+  #pbDetailModal .pbd-table tbody tr:last-child td{border-bottom:0}
+  .pbd-stat{display:inline-flex;align-items:center;gap:8px}
+  .pbd-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;background:#94a3b8}
+  .pbd-dot.ok{background:#10b981}.pbd-dot.warn{background:#f59e0b}
+  .pbd-custom{margin-top:6px;width:100%;max-width:200px}
+  .pbd-foot{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-top:1px solid var(--bd);background:var(--s0);border-radius:0 0 12px 12px}
+  .pbd-foot b{font-size:22px;font-weight:800;color:var(--acc)}
+  .pbd-empty{text-align:center !important;color:var(--mu) !important;padding:28px 14px !important}
+  @media (max-width:640px){
+    .pbd-head{flex-wrap:wrap;padding:12px}
+    .pbd-actions{width:100%;justify-content:flex-end}
+    .pbd-val{font-size:20px}.pbd-chart{height:170px}.pbd-body{padding:12px}
+  }
+  @media (prefers-reduced-motion:reduce){#pbDetailModal,#pbDetailModal .modal-card{transition:none}}
+
+  /* Styling khusus Print-Friendly View */
+  @media print {
+    body { background: white !important; color: black !important; overflow: visible !important; height: auto !important; }
+    #appSidebar, #appSidebarBackdrop, header, .no-print, button, input, select { display: none !important; }
+    main { padding: 0 !important; overflow: visible !important; }
+    .bg-white, .dark .bg-slate-800 { background: white !important; border: none !important; shadow: none !important; color: black !important; }
+    table { width: 100% !important; border-collapse: collapse !important; }
+    th, td { border: 1px solid #000 !important; font-size: 10pt !important; color: black !important; }
+    thead tr.bg-shopee th { background: #eee !important; color: #000 !important; }
+    .print-title { display: block !important; margin-bottom: 10px; }
+  }
+  .print-title { display: none; }
+
+    /* Toast notifikasi in-app (ganti alert() bawaan browser) */
+    .toast-stack {
+      position: fixed; top: 16px; right: 16px; z-index: 9999;
+      display: flex; flex-direction: column; gap: 10px; max-width: 340px;
+    }
+    .toast-item {
+      background: #000000; color: #ffffff; border-radius: 8px; padding: 12px 14px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3); display: flex; align-items: flex-start; gap: 10px;
+      font-size: 12.5px; font-weight: 600; line-height: 1.5; white-space: pre-line;
+      animation: toast-in 0.2s ease-out; border: 1px solid #262626;
+    }
+    .toast-item.ok { border-left: 4px solid #22c55e; }
+    .toast-item.err { border-left: 4px solid #ef4444; }
+    .toast-item.info { border-left: 4px solid #9ca3af; }
+    .toast-icon { flex-shrink: 0; font-size: 14px; line-height: 1.5; }
+    .toast-msg { flex: 1; }
+    .toast-close { background: transparent; border: none; color: #9ca3af; cursor: pointer; font-size: 14px; padding: 0 0 0 4px; flex-shrink: 0; }
+    .toast-close:hover { color: #fff; }
+    @keyframes toast-in { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ==== REDESIGN DASHBOARD UTAMA (prefix pbx-) ==== */
+  html { --pbx-page:#f6f4f5; --pbx-card:#ffffff; --pbx-line:#e8e3e5; --pbx-ink:#1f1a1d; --pbx-mute:#6f6569; --pbx-soft:#f3eff1; --pbx-name:#5d1020; --pbx-hover:#faf6f7; --pbx-low:#fdecee; --pbx-low-hover:#fbe0e4; }
+  html.dark { --pbx-page:#0f172a; --pbx-card:#1e293b; --pbx-line:#334155; --pbx-ink:#f1f5f9; --pbx-mute:#94a3b8; --pbx-soft:#0f172a; --pbx-name:#fda4af; --pbx-hover:rgba(148,163,184,.08); --pbx-low:rgba(244,63,94,.10); --pbx-low-hover:rgba(244,63,94,.17); }
+
+  /* -- Header -- */
+  .pbx-logo { width:38px; height:38px; border-radius:10px; background:rgba(0,0,0,.25); border:1px solid rgba(255,255,255,.2); display:grid; place-items:center; font-size:17px; flex-shrink:0; }
+  .pbx-hbtn { display:inline-flex; align-items:center; gap:7px; height:34px; padding:0 11px; border-radius:9px; border:1px solid transparent; font-size:12px; font-weight:700; color:#fff; white-space:nowrap; cursor:pointer; transition:background-color .15s, border-color .15s; }
+  .pbx-hbtn:focus-visible, .pbx-date:focus-visible { outline:2px solid #fff; outline-offset:2px; }
+  .pbx-hbtn-ghost { background:rgba(0,0,0,.22); border-color:rgba(255,255,255,.22); }
+  .pbx-hbtn-ghost:hover { background:rgba(0,0,0,.38); }
+  .pbx-hbtn-amber { background:#fbbf24; color:#2a1a00; }
+  .pbx-hbtn-amber:hover { background:#fcd34d; }
+  .pbx-hbtn-sky { background:#38bdf8; color:#04243a; }
+  .pbx-hbtn-sky:hover { background:#7dd3fc; }
+  .pbx-hbtn-danger { background:#e11d48; border-color:rgba(255,255,255,.25); }
+  .pbx-hbtn-danger:hover { background:#f43f5e; }
+  .pbx-hbtn-danger:disabled { opacity:.6; cursor:wait; }
+  .pbx-date { height:34px; padding:0 10px; border-radius:9px; background:#172036; color:#fff; border:1px solid rgba(255,255,255,.18); font-size:12px; font-weight:600; font-family:inherit; color-scheme:dark; cursor:pointer; }
+  .pbx-hsep { width:1px; height:22px; background:rgba(255,255,255,.25); flex-shrink:0; }
+  .pbx-import-status { display:inline-flex; align-items:center; gap:7px; max-width:150px; font-size:11px; font-weight:600; color:#fde8ec; }
+  .pbx-import-status #pbFileName { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .pbx-import-dot { width:8px; height:8px; border-radius:50%; background:#94a3b8; flex-shrink:0; }
+  .pbx-import-dot.on { background:#22c55e; box-shadow:0 0 0 3px rgba(34,197,94,.25); }
+
+  /* -- Layout & kartu dasar -- */
+  .pbx-main { background:var(--pbx-page); }
+  .pbx-card { background:var(--pbx-card); border:1px solid var(--pbx-line); border-radius:14px; box-shadow:0 1px 2px rgba(60,20,30,.05); }
+
+  /* -- Medal rank (dipakai Hall of Fame + tabel) -- */
+  .pbx-medal { display:inline-grid; place-items:center; width:28px; height:28px; border-radius:50%; flex-shrink:0; font-size:12px; font-weight:800; color:#fff; border:2px solid rgba(255,255,255,.75); font-variant-numeric:tabular-nums; }
+  .pbx-m1 { background:linear-gradient(145deg,#fcd34d,#d97706); box-shadow:0 1px 4px rgba(180,100,0,.45); }
+  .pbx-m2 { background:linear-gradient(145deg,#cbd5e1,#64748b); box-shadow:0 1px 3px rgba(71,85,105,.4); }
+  .pbx-m3 { background:linear-gradient(145deg,#f0a77a,#b45309); box-shadow:0 1px 3px rgba(146,64,14,.4); }
+  .pbx-medal-n { background:var(--pbx-soft); color:var(--pbx-mute); border-color:var(--pbx-line); }
+
+  /* -- Hall of Fame -- */
+  .pbx-hof { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; flex-shrink:0; padding:14px 18px; border-radius:14px; border:1px solid #f1d98f; background:linear-gradient(100deg,#fff6dc 0%,#fffcf3 52%,#ffffff 100%); }
+  html.dark .pbx-hof { border-color:rgba(245,158,11,.3); background:linear-gradient(100deg,rgba(245,158,11,.16),rgba(30,41,59,.95) 62%); }
+  .pbx-hof-ico { width:44px; height:44px; border-radius:12px; background:#fbbf24; color:#4a2e00; display:grid; place-items:center; font-size:20px; flex-shrink:0; box-shadow:0 2px 6px rgba(180,120,0,.28); }
+  .pbx-hof-title { font-size:13px; font-weight:800; letter-spacing:.04em; text-transform:uppercase; color:#6a1a24; }
+  html.dark .pbx-hof-title { color:#fcd34d; }
+  .pbx-hof-sub { font-size:11.5px; color:var(--pbx-mute); margin-top:2px; }
+  .pbx-pods { display:flex; align-items:stretch; gap:10px; padding:4px 2px 2px; overflow-x:auto; }
+  .pbx-pod { display:flex; align-items:center; gap:11px; min-width:190px; padding:10px 16px 10px 12px; border-radius:12px; border:1px solid; flex-shrink:0; }
+  .pbx-pod .pbx-medal { width:34px; height:34px; font-size:14px; }
+  .pbx-pod-1 { background:#fff3cf; border-color:#f0c24b; box-shadow:0 5px 14px rgba(217,165,0,.25); transform:translateY(-3px); }
+  .pbx-pod-2 { background:#eef3fb; border-color:#c3cee2; }
+  .pbx-pod-3 { background:#fdece6; border-color:#efbfae; }
+  html.dark .pbx-pod-1 { background:rgba(245,158,11,.18); border-color:rgba(245,158,11,.6); }
+  html.dark .pbx-pod-2 { background:rgba(148,163,184,.14); border-color:rgba(148,163,184,.4); }
+  html.dark .pbx-pod-3 { background:rgba(234,88,12,.14); border-color:rgba(234,88,12,.4); }
+  .pbx-pod-name { font-size:12.5px; font-weight:800; color:var(--pbx-ink); line-height:1.2; max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .pbx-pod-pcs { font-size:12px; color:var(--pbx-mute); margin-top:2px; font-variant-numeric:tabular-nums; }
+  .pbx-pod-pcs b { font-size:13px; font-weight:800; color:var(--pbx-ink); }
+
+  /* -- KPI -- */
+  .pbx-kpis { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; flex-shrink:0; }
+  @media (min-width:768px) { .pbx-kpis { grid-template-columns:repeat(4,minmax(0,1fr)) minmax(0,1.45fr); } }
+  .pbx-kpi { display:flex; flex-direction:column; gap:10px; min-width:0; padding:14px 16px; }
+  .pbx-kpi-head { display:flex; align-items:center; gap:8px; }
+  .pbx-kpi-body { margin-block:auto; }
+  .pbx-kpi-ico { width:26px; height:26px; border-radius:8px; display:grid; place-items:center; font-size:12px; flex-shrink:0; }
+  .pbx-ico-indigo { background:#eef0ff; color:#4f46e5; } .pbx-ico-emerald { background:#e6f7ef; color:#059669; } .pbx-ico-sky { background:#e5f3fd; color:#0369a1; } .pbx-ico-violet { background:#f1eafd; color:#7c3aed; } .pbx-ico-amber { background:#fff3d6; color:#b45309; }
+  html.dark .pbx-ico-indigo { background:rgba(99,102,241,.18); color:#a5b4fc; } html.dark .pbx-ico-emerald { background:rgba(16,185,129,.16); color:#6ee7b7; } html.dark .pbx-ico-sky { background:rgba(14,165,233,.16); color:#7dd3fc; } html.dark .pbx-ico-violet { background:rgba(139,92,246,.18); color:#c4b5fd; } html.dark .pbx-ico-amber { background:rgba(245,158,11,.16); color:#fcd34d; }
+  .pbx-kpi-lbl { font-size:10px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--pbx-mute); }
+  .pbx-kpi-val { font-size:24px; font-weight:800; line-height:1.1; color:var(--pbx-ink); font-variant-numeric:tabular-nums; }
+  .pbx-kpi-val.big { font-size:30px; }
+  .pbx-kpi-sub { display:block; margin-top:4px; font-size:11px; color:var(--pbx-mute); }
+  .pbx-month { width:100%; padding:0; border:0; background:transparent; font-family:inherit; font-size:20px; font-weight:800; line-height:1.2; color:var(--pbx-ink); cursor:pointer; color-scheme:light; }
+  html.dark .pbx-month { color-scheme:dark; }
+  .pbx-month:focus-visible { outline:2px solid #9c2436; outline-offset:3px; border-radius:6px; }
+  .pbx-month::-webkit-calendar-picker-indicator { cursor:pointer; opacity:.75; }
+  .pbx-prog { display:flex; align-items:center; gap:10px; margin-top:8px; }
+  .pbx-prog-track { flex:1; height:7px; border-radius:99px; background:var(--pbx-soft); overflow:hidden; }
+  html.dark .pbx-prog-track { background:#334155; }
+  .pbx-prog-track i { display:block; height:100%; border-radius:99px; background:#10b981; transition:width .3s ease; }
+  .pbx-pct { font-size:11px; font-weight:700; color:var(--pbx-mute); min-width:34px; font-variant-numeric:tabular-nums; }
+  .pbx-top { display:flex; align-items:flex-start; gap:8px; }
+  .pbx-top i { color:#f59e0b; font-size:15px; margin-top:2px; }
+  .pbx-top-name { font-size:15px; font-weight:800; line-height:1.3; color:var(--pbx-name); word-break:break-word; }
+  .pbx-ag { display:flex; flex-direction:column; gap:9px; }
+  .pbx-ag-top { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:4px; font-size:11px; }
+  .pbx-ag-name { display:inline-flex; align-items:center; gap:7px; font-weight:800; color:var(--pbx-ink); }
+  .pbx-ag-name i { width:8px; height:8px; border-radius:3px; display:inline-block; }
+  .pbx-ag-val { color:var(--pbx-mute); font-variant-numeric:tabular-nums; }
+  .pbx-ag .pbx-prog-track { height:6px; }
+  .pbx-ag .pbx-prog-track i { background:#94a3b8; }
+
+  /* -- Filter bar -- */
+  .pbx-filters { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px 14px; padding:10px 12px; flex-shrink:0; }
+  .pbx-fgroup { display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
+  .pbx-fgroup-main { flex:1 1 560px; }
+  .pbx-field { height:34px; padding:0 10px; border:1px solid var(--pbx-line); border-radius:9px; background:var(--pbx-card); color:var(--pbx-ink); font-family:inherit; font-size:12px; }
+  html.dark .pbx-field { background:#0f172a; }
+  .pbx-field:focus-visible { outline:2px solid #9c2436; outline-offset:1px; }
+  .pbx-search { position:relative; flex:1 1 200px; min-width:180px; max-width:300px; }
+  .pbx-search i { position:absolute; left:11px; top:50%; transform:translateY(-50%); color:#94a3b8; font-size:12px; pointer-events:none; }
+  .pbx-search input { width:100%; padding-left:31px; }
+  .pbx-chip { display:inline-flex; align-items:center; gap:7px; height:34px; padding:0 12px; border-radius:9px; border-width:1px; border-style:solid; font-size:12px; font-weight:700; white-space:nowrap; cursor:pointer; transition:background-color .15s, color .15s; }
+  .pbx-chip:focus-visible, .pbx-btn:focus-visible { outline:2px solid #9c2436; outline-offset:2px; }
+  .pbx-chip.pbx-on, html.dark .pbx-chip.pbx-on { color:#fff !important; box-shadow:0 2px 8px rgba(0,0,0,.18); }
+  .pbx-chip.pbx-on i { color:#fff !important; }
+  #btnD1ViewFilter.pbx-on { background:#4f46e5 !important; border-color:#4338ca !important; }
+  #btnRedFlagFilter.pbx-on { background:#e11d48 !important; border-color:#be123c !important; }
+  .pbx-range { display:inline-flex; align-items:center; gap:7px; height:34px; padding:0 10px; border:1px solid var(--pbx-line); border-radius:9px; background:var(--pbx-card); }
+  .pbx-range > i { color:var(--pbx-mute); font-size:12px; }
+  .pbx-range-lbl { font-size:11px; font-weight:600; color:var(--pbx-mute); white-space:nowrap; }
+  .pbx-range input { width:108px; border:0; background:transparent; font-family:inherit; font-size:11.5px; color:var(--pbx-ink); }
+  html.dark .pbx-range input { color-scheme:dark; }
+  .pbx-vsep { width:1px; height:22px; background:var(--pbx-line); flex-shrink:0; }
+  .pbx-btn { display:inline-flex; align-items:center; gap:7px; height:34px; padding:0 13px; border-radius:9px; border:1px solid transparent; font-size:12px; font-weight:700; white-space:nowrap; cursor:pointer; transition:background-color .15s; }
+  .pbx-btn-quick { background:var(--pbx-card); border-color:var(--pbx-line); color:var(--pbx-ink); }
+  .pbx-btn-quick:hover { background:var(--pbx-soft); }
+  .pbx-btn-excel { background:#059669; color:#fff; } .pbx-btn-excel:hover { background:#047857; }
+  .pbx-btn-pdf { background:#e11d48; color:#fff; } .pbx-btn-pdf:hover { background:#be123c; }
+
+  /* -- Tabel ranking -- */
+  .pbx-tablecard { flex:1 1 auto; min-height:380px; display:flex; flex-direction:column; overflow:hidden; }
+  .pbx-table th, .pbx-table td { text-align:left; }
+  .pbx-table thead tr.bg-shopee th { background:#7a1224; color:#fff; font-size:12px; font-weight:700; letter-spacing:0; padding:12px 14px !important; border-bottom:0; }
+  .pbx-table thead tr.bg-shopee th:hover { background:#8e1a2f; }
+  .pbx-table thead tr.bg-shopee th.pbx-chev { cursor:default; background:#7a1224; }
+  .pbx-table tbody td { padding:10px 14px !important; font-size:12.5px; vertical-align:middle; color:var(--pbx-ink); border-bottom:1px solid var(--pbx-line); }
+  .pbx-table tbody tr { cursor:pointer; transition:background-color .12s; }
+  .pbx-table tbody tr:hover { background:var(--pbx-hover); }
+  .pbx-table tbody tr.pbx-low { background:var(--pbx-low); }
+  .pbx-table tbody tr.pbx-low:hover { background:var(--pbx-low-hover); }
+  .pbx-table tbody tr:last-child td { border-bottom:0; }
+  .pbx-table tbody tr.pbx-empty-row, .pbx-table tbody tr.pbx-empty-row:hover { cursor:default; background:transparent; }
+  .pbx-table td.pbx-empty { text-align:center !important; padding:28px 14px !important; color:var(--pbx-mute); }
+  .pbx-rank { width:64px; }
+  .pbx-chev { width:40px; text-align:center !important; color:#a8a1a5; }
+  .pbx-name { font-weight:800; color:var(--pbx-name); letter-spacing:.01em; }
+  .pbx-ops { font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:600; color:var(--pbx-mute); }
+  .pbx-st { display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:99px; font-size:11px; font-weight:700; white-space:nowrap; }
+  .pbx-st i { font-size:10px; }
+  .pbx-st-wanita { background:#fde7f1; color:#be185d; } .pbx-st-pria { background:#e0f0fd; color:#0369a1; } .pbx-st-oncall { background:#eceff3; color:#475569; } .pbx-st-ded { background:#fef3c7; color:#92400e; }
+  html.dark .pbx-st-wanita { background:rgba(236,72,153,.18); color:#f9a8d4; } html.dark .pbx-st-pria { background:rgba(14,165,233,.18); color:#7dd3fc; } html.dark .pbx-st-oncall { background:rgba(148,163,184,.18); color:#cbd5e1; } html.dark .pbx-st-ded { background:rgba(245,158,11,.18); color:#fcd34d; }
+  .pbx-tt { min-width:200px; }
+  .pbx-tt-top { display:flex; align-items:baseline; gap:5px; font-variant-numeric:tabular-nums; }
+  .pbx-tt-val { padding:0; border:0; background:none; font-family:inherit; font-size:13px; font-weight:800; color:var(--pbx-name); cursor:pointer; }
+  .pbx-tt-val:hover { text-decoration:underline; }
+  .pbx-tt-val:focus-visible { outline:2px solid #9c2436; outline-offset:2px; border-radius:4px; }
+  .pbx-tt-of { font-size:12px; font-weight:600; color:var(--pbx-mute); }
+  .pbx-bar-row { display:flex; align-items:center; gap:8px; margin-top:5px; }
+  .pbx-bar { flex:1; max-width:130px; height:6px; border-radius:99px; background:#e7e2e5; overflow:hidden; }
+  html.dark .pbx-bar { background:#334155; }
+  .pbx-bar i { display:block; height:100%; border-radius:99px; }
+  .pbx-bar-ok { background:#10b981; } .pbx-bar-mid { background:#f59e0b; } .pbx-bar-low { background:#f43f5e; }
+  .pbx-sub { margin-top:3px; font-size:10px; color:var(--pbx-mute); }
+  .pbx-avg { font-weight:700; font-variant-numeric:tabular-nums; }
+  .pbx-trend { display:flex; align-items:center; gap:12px; }
+  .pbx-gr { display:inline-flex; align-items:center; gap:4px; min-width:50px; font-size:12px; font-weight:800; }
+  .pbx-up { color:#059669; } .pbx-down { color:#e11d48; } .pbx-flat { color:var(--pbx-mute); }
+  html.dark .pbx-up { color:#34d399; } html.dark .pbx-down { color:#fb7185; }
+
+  /* -- Print: lengkapi aturan print bawaan -- */
+  @media print {
+    .pbx-main { background:#fff !important; }
+    .pbx-filters { display:none !important; }
+    .pbx-card, .pbx-hof { background:#fff !important; border:1px solid #ddd !important; box-shadow:none !important; }
+    .pbx-tablecard { min-height:0 !important; }
+    th.pbx-chev, td.pbx-chev { display:none !important; }
+    #pbTableBody button { display:inline !important; color:#000 !important; }
+    .pbx-table thead tr.bg-shopee th { background:#eee !important; color:#000 !important; }
+    .pbx-table tbody tr.pbx-low { background:#fdecee !important; }
+    .pbx-bar i, .pbx-st, .pbx-medal, .pbx-table tbody tr.pbx-low { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  }
+
+  .pbx-kpi-val.pbx-rate { color:#059669; }
+  html.dark .pbx-kpi-val.pbx-rate { color:#34d399; }
+  @media (prefers-reduced-motion:reduce) {
+    .pbx-prog-track i, .pbx-chip, .pbx-btn, .pbx-hbtn, .pbx-table tbody tr { transition:none; }
+  }
+
+  /* -- Medali bergaya pita (override): top 3 pita + lingkaran, rank 4+ lingkaran lembut -- */
+  .pbx-medal { position:relative; isolation:isolate; border:0; box-shadow:none; }
+  .pbx-m1, .pbx-m2, .pbx-m3 { width:26px; height:26px; margin-top:6px; border:2px solid #fff; box-shadow:0 1px 3px rgba(0,0,0,.28); }
+  .pbx-m1::before, .pbx-m2::before, .pbx-m3::before { content:''; position:absolute; left:50%; top:-9px; width:18px; height:12px; transform:translateX(-50%); z-index:-1; background:var(--rib); clip-path:polygon(0 0,100% 0,82% 100%,50% 62%,18% 100%); }
+  .pbx-m1 { --rib:#f59e0b; background:radial-gradient(circle at 35% 30%,#fde68a,#f59e0b 70%); }
+  .pbx-m2 { --rib:#8ea3c9; background:radial-gradient(circle at 35% 30%,#e2e8f0,#7b8fb5 72%); }
+  .pbx-m3 { --rib:#d9825b; background:radial-gradient(circle at 35% 30%,#fbc9a8,#c2693b 72%); }
+  .pbx-pod .pbx-m1, .pbx-pod .pbx-m2, .pbx-pod .pbx-m3 { width:32px; height:32px; margin-top:8px; font-size:14px; }
+  .pbx-pod .pbx-m1::before, .pbx-pod .pbx-m2::before, .pbx-pod .pbx-m3::before { width:22px; height:14px; top:-11px; }
+  .pbx-medal-n { width:28px; height:28px; background:#e8edf8; color:#334155; border:0; font-weight:700; }
+  html.dark .pbx-medal-n { background:rgba(148,163,184,.16); color:#cbd5e1; }
+  html.dark .pbx-m1, html.dark .pbx-m2, html.dark .pbx-m3 { border-color:rgba(255,255,255,.85); }
+    

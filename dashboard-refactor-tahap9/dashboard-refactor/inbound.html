@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1280">
+  <meta name="robots" content="noindex, nofollow, noarchive">
+  <title>Inbound - Internal Palangka Raya DC</title>
+  <link rel="icon" type="image/png" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚚</text></svg>">
+  <!-- PapaParse CDN for CSV parsing -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <!-- jsPDF + AutoTable buat Export PDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+  <!-- FIREBASE SDK (app+auth dibutuhkan auth-guard.js, database dibutuhkan buat sync LH Tracking & Forecast MP) -->
+  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+  <link rel="stylesheet" href="assets/css/app-sidebar.css">
+<link rel="stylesheet" href="assets/css/inbound.css">
+</head>
+<body>
+<script>window.__PAGE_TAB = "inbound";</script>
+<script src="auth-guard.js"></script>
+<div class="toast-stack" id="toastStack"></div>
+<script src="assets/js/common.js"></script>
+<script src="assets/js/feedback-board.js"></script>
+<script src="assets/js/i18n-engine.js"></script>
+<script src="assets/js/app-shell-bridge.js"></script>
+<script src="assets/js/app-sidebar.js"></script>
+<script src="assets/js/inbound/app-sidebar-config.js"></script>
+
+
+<script src="assets/js/inbound/i18n.js"></script>
+
+<!-- ==== SIDEBAR NAVIGASI ANTAR MODUL ==== -->
+<button class="hamburger-btn" onclick="toggleAppSidebar()" title="Buka Menu" data-i18n-title="sidebar.openMenu">☰</button>
+<div class="sidebar-backdrop" id="appSidebarBackdrop" onclick="toggleAppSidebar()"></div>
+<nav class="app-sidebar" id="appSidebar"></nav>
+
+<!-- ==== PAPAN SARAN & MASUKAN (realtime, 1 papan sama buat semua modul) ==== -->
+<div class="fb-board-backdrop" id="fbBoardBackdrop" onclick="if(event.target===this) closeFeedbackBoard()">
+  <div class="fb-board-card">
+    <div class="fb-board-header">
+      <h3>💬 <span data-i18n="feedback.title">Saran &amp; Masukan</span></h3>
+      <button onclick="closeFeedbackBoard()">✕</button>
+    </div>
+    <div class="fb-board-form">
+      <div class="fb-board-form-row">
+        <div class="fb-board-form-field">
+          <label data-i18n="feedback.module.label">Jenis Module</label>
+          <select id="fbBoardModule">
+            <option value="" data-i18n="feedback.module.placeholder">Pilih Module</option>
+            <option value="Inbound" data-i18n="feedback.module.inbound">Inbound</option>
+            <option value="Rest Time" data-i18n="feedback.module.restTime">Rest Time</option>
+            <option value="Asset Usage Monitoring" data-i18n="feedback.module.assetUsageMonitoring">Asset Usage Monitoring</option>
+            <option value="Performance Bagger" data-i18n="feedback.module.performanceBagger">Performance Bagger</option>
+            <option value="Outbound Monitoring" data-i18n="feedback.module.outboundMonitoring">Outbound Monitoring</option>
+            <option value="Inventory Control" data-i18n="feedback.module.inventoryControl">Inventory Control</option>
+          </select>
+        </div>
+        <div class="fb-board-form-field">
+          <label data-i18n="feedback.category.label">Jenis Pengaduan</label>
+          <select id="fbBoardCategory">
+            <option value="" data-i18n="feedback.category.placeholder">Pilih Jenis Pengaduan</option>
+            <option value="Bug" data-i18n="feedback.category.bug">Bug</option>
+            <option value="Fitur" data-i18n="feedback.category.feature">Fitur</option>
+          </select>
+        </div>
+      </div>
+      <label class="fb-board-form-detail-label" data-i18n="feedback.detail.label">Detail</label>
+      <textarea id="fbBoardInput" maxlength="500" placeholder="Jelasin masalah atau saran kamu di sini..." data-i18n-placeholder="feedback.placeholder" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();submitFeedback();}"></textarea>
+      <div class="fb-board-form-footer">
+        <button class="fb-board-submit-btn" id="fbBoardSubmitBtn" onclick="submitFeedback()" data-i18n="feedback.submit">Kirim</button>
+      </div>
+    </div>
+    <div class="fb-board-list" id="fbBoardList"></div>
+  </div>
+</div>
+
+<link rel="stylesheet" href="assets/css/inbound-summary.css">
+<div class="container">
+  <div class="header-bar">
+    <h2>🚚 <span>Inbound Tracking Palangka Raya DC</span></h2>
+    <div class="freshness-bar">
+      <span style="color:#64748b;">Last: <b id="sumLast">-</b></span>
+      <button type="button" class="btn-reset-filter" style="margin:0;" id="sumBtnRefresh" onclick="loadSummary()">🔄 Refresh</button>
+      <button type="button" class="btn-reset-filter btn-export-pdf" style="margin:0;" id="sumBtnExport" onclick="openExportPreview()">📄 Export PDF</button>
+    </div>
+  </div>
+
+  <div class="projection-filter-bar">
+    <div class="filter-item"><label>📅 Dari Tanggal (Arrival)</label><input type="date" id="sumFrom"></div>
+    <div class="filter-item"><label>📅 Sampai Tanggal (Arrival)</label><input type="date" id="sumTo"></div>
+    <div class="filter-item"><label>🔍 Cari (LT / Route / Nopol / Driver / Vendor)</label><input type="text" id="sumSearch" placeholder="Ketik untuk cari..." style="min-width:260px;"></div>
+    <div class="filter-item"><label>🏢 Vendor</label><select id="sumVendor"><option value="">Semua</option></select></div>
+    <div class="filter-item"><label>🔄 Shift</label><select id="sumShiftSel"><option value="">Semua</option></select></div>
+    <div class="filter-item"><label>✈️ Trip Type</label><select id="sumType"><option value="">Semua</option></select></div>
+    <div class="filter-item"><label>🚦 Status</label><select id="sumStatus"><option value="">Semua</option><option>Early</option><option>Ontime</option><option>Late</option></select></div>
+    <button type="button" class="btn-reset-filter" id="sumBtnReset">🔄 Reset Filter</button>
+  </div>
+
+  <div class="sum-err" id="sumError"></div>
+
+  <div class="forecast-card">
+    <div class="forecast-header"><span>📌 Ringkasan Periode</span><span id="sumCount" style="font-size:12px;color:#64748b;"></span></div>
+    <div class="forecast-grid" id="sumKpi" style="margin-bottom:0;"></div>
+  </div>
+
+  <div class="sum-sec">
+    <h3>📈 Tren Harian <small>berdasarkan tanggal Arrival, ikut filter di atas</small></h3>
+    <div class="sum-grid2">
+      <div class="sum-chart-box"><div class="sum-chart-title">Jumlah Trip per Hari <span class="sum-lg"><i style="background:#22c55e"></i>Early</span><span class="sum-lg"><i style="background:#3b82f6"></i>Ontime</span><span class="sum-lg"><i style="background:#ef4444"></i>Late</span></div><div class="sum-plot" id="sumTrendTrip"></div></div>
+      <div class="sum-chart-box"><div class="sum-chart-title">Parcel Qty per Hari</div><div class="sum-plot" id="sumTrendParcel"></div></div>
+    </div>
+  </div>
+
+  <div class="sum-sec">
+    <h3>🏢 Rekap Performance Vendor <small>Early, Ontime &amp; Late Arrival (berdasarkan Status Standard)</small></h3>
+    <div class="ch-wrapper"><table class="ch-table">
+      <thead><tr><th>Vendor</th><th>Total Trip</th><th>Early</th><th>Ontime</th><th>Late</th><th>% Early</th><th>% Ontime</th><th>% Late</th><th>Distribusi</th></tr></thead>
+      <tbody id="sumVendorBody"></tbody>
+    </table></div>
+  </div>
+
+  <div class="sum-sec">
+    <h3>⏱️ Durasi Unload per Shift <small>rata-rata; merah = melebihi standar (Arrival–Unload 0:20, Unload–Finish 1:20, Arrival–Finish 1:40)</small></h3>
+    <div class="ch-wrapper"><table class="ch-table">
+      <thead><tr><th>Shift</th><th>Total Trip</th><th>Sudah Finish</th><th>Avg Arrival → Unload</th><th>Avg Unload → Finish</th><th>Avg Arrival → Finish</th><th>Max Arrival → Finish</th></tr></thead>
+      <tbody id="sumShiftBody"></tbody>
+    </table></div>
+  </div>
+
+  <div class="sum-sec">
+    <h3>👥 Rekap per Shift Lead &amp; Team Lead <small>merah = melebihi standar</small></h3>
+    <div class="sum-grid2">
+      <div class="ch-wrapper"><table class="ch-table"><thead><tr><th>Shift Lead</th><th>Trip</th><th>Late</th><th>Avg Arrival → Unload</th><th>Avg Unload → Finish</th><th>Avg Arrival → Finish</th></tr></thead><tbody id="sumShiftLeadBody"></tbody></table></div>
+      <div class="ch-wrapper"><table class="ch-table"><thead><tr><th>Team Lead</th><th>Trip</th><th>Late</th><th>Avg Arrival → Unload</th><th>Avg Unload → Finish</th><th>Avg Arrival → Finish</th></tr></thead><tbody id="sumTeamLeadBody"></tbody></table></div>
+    </div>
+  </div>
+
+  <div class="sum-sec">
+    <h3>🚨 Perlu Perhatian <small>10 teratas, ikut filter di atas</small></h3>
+    <div class="sum-grid2">
+      <div><div class="sum-chart-title">Late Arrival terparah <small id="sumLateCount" style="color:#64748b"></small></div>
+        <div class="ch-wrapper"><table class="ch-table"><thead><tr><th>LT</th><th>Vendor</th><th>Route</th><th>STA</th><th>ATA</th><th>Telat</th></tr></thead><tbody id="sumLateBody"></tbody></table></div></div>
+      <div><div class="sum-chart-title">Arrival → Finish melebihi standar (1:40) <small id="sumSlowCount" style="color:#64748b"></small></div>
+        <div class="ch-wrapper"><table class="ch-table"><thead><tr><th>LT</th><th>Vendor</th><th>Shift</th><th>Arr → Unload</th><th>Unload → Finish</th><th>Arr → Finish</th></tr></thead><tbody id="sumSlowBody"></tbody></table></div></div>
+    </div>
+  </div>
+
+  <div class="sum-sec">
+    <h3>📋 Data Lengkap Sheet "Inbound Sea &amp; Air" <small id="sumDetailCount"></small></h3>
+    <div class="sum-scroll"><table class="ch-table">
+      <thead><tr id="sumDetailHead"></tr></thead>
+      <tbody id="sumDetailBody"></tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- ===== Modal Preview Export PDF ===== -->
+<div class="exp-backdrop" id="expModal" onclick="if (event.target === this) closeExportPreview()">
+  <div class="exp-box" role="dialog" aria-modal="true" aria-labelledby="expTitle">
+    <div class="exp-head">
+      <h3 id="expTitle">📄 Preview Export PDF</h3>
+      <button type="button" onclick="closeExportPreview()" title="Tutup">✕</button>
+    </div>
+    <div class="exp-body">
+      <div class="exp-opts">
+        <div class="exp-opt">
+          <label>🚦 Status Arrival</label>
+          <div class="exp-seg" id="expStatusSeg">
+            <button type="button" data-v="">All</button>
+            <button type="button" data-v="Early">🟢 Early Arrival</button>
+            <button type="button" data-v="Ontime">🔵 On Time</button>
+            <button type="button" data-v="Late">🔴 Late Arrival</button>
+          </div>
+        </div>
+        <div class="exp-opt">
+          <label>🏢 Vendor</label>
+          <div class="exp-seg" id="expVendorSeg">
+            <button type="button" data-m="all">All Vendor</button>
+            <button type="button" data-m="one">Specific Vendor</button>
+          </div>
+          <select id="expVendorSel"></select>
+        </div>
+      </div>
+      <div class="exp-info" id="expInfo"></div>
+      <div class="exp-chips" id="expChips"></div>
+      <div class="exp-scroll">
+        <table class="ch-table">
+          <thead><tr id="expHead"></tr></thead>
+          <tbody id="expBody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="exp-foot">
+      <span class="exp-note" id="expNote"></span>
+      <button type="button" class="exp-cancel" onclick="closeExportPreview()">Batal</button>
+      <button type="button" class="exp-go" id="expGo" onclick="downloadExportPdf()">⬇️ Download PDF</button>
+    </div>
+  </div>
+</div>
+
+<script src="assets/js/inbound/feedback-config.js"></script>
+<script src="assets/js/inbound/i18n-config.js"></script>
+
+<script src="assets/js/inbound/sidebar.js"></script>
+<script src="assets/js/inbound/inbound-summary.js"></script>
+<script src="assets/js/inbound/app-shell-bridge.js"></script>
+
+
+</body>
+</html>

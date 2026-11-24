@@ -1,0 +1,189 @@
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #0b1329;
+    color: #f1f5f9;
+  }
+
+  .shell { display: flex; flex-direction: column; height: 100vh; }
+
+  .topnav {
+    flex-shrink: 0;
+    height: 38px;
+    background: #ffffff;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+    gap: 4px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; /* Firefox */
+  }
+  .topnav::-webkit-scrollbar { display: none; } /* Chrome/Safari/Edge */
+  .topnav .brand {
+    font-weight: 700;
+    font-size: 10.5px;
+    color: #94a3b8;
+    letter-spacing: 0.3px;
+    padding: 0 10px 0 4px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .tab-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px;
+    border-radius: 6px;
+    border: none;
+    background: transparent;
+    color: #475569;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 10.5px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .tab-btn:hover { background: #f1f5f9; color: #1e293b; }
+  .tab-btn.active { background: #e67e22; color: #fff; }
+  /* Tombol tab "AI Agent Odyssey" SENGAJA disembunyiin permanen dari topnav —
+     Odyssey cuma diakses lewat FAB mengambang (lihat .odyssey-fab-wrap),
+     bukan sebagai tab penuh. Elemennya dibiarin tetep ada di DOM (bukan
+     dihapus) biar kode JS yang masih nyari elemen ini (ODYSSEY_TAB.btn) gak
+     error, cuma gak pernah ditampilin ke user. */
+  #tabBtnOdyssey { display: none !important; }
+  .topnav-spacer { flex: 1; flex-shrink: 999; min-width: 4px; }
+  .logout-btn {
+    display: flex; align-items: center; gap: 5px;
+    padding: 5px 10px; border-radius: 6px; border: 1px solid #e2e8f0;
+    background: transparent; color: #64748b; font-family: 'Inter', sans-serif;
+    font-weight: 600; font-size: 10.5px; cursor: pointer; transition: all 0.15s;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .logout-btn:hover { border-color: #f87171; color: #f87171; }
+
+  .frames { position: relative; flex: 1; min-height: 0; }
+  .frames iframe {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    border: none; display: none;
+  }
+  .frames iframe.active { display: block; }
+
+  /* ===== Bar "Ask Odyssey" (pill gradient) — nempel di topnav, gantiin FAB mengambang ===== */
+  .odyssey-ask {
+    position: relative;
+    flex-shrink: 0; display: flex; align-items: center; gap: 8px;
+    height: 28px; padding: 0 16px 0 12px; cursor: pointer;
+    font-family: 'Inter', sans-serif; font-size: 11.5px; font-weight: 600; letter-spacing: .1px;
+    color: #1e293b; white-space: nowrap;
+    border: none; border-radius: 999px;
+    background: transparent; /* isi bening 100%, yang kelihatan cuma garis tepi */
+    transition: filter .15s, box-shadow .15s;
+  }
+  /* Garis tepi gradient: digambar lewat pseudo-element + mask, jadi bagian
+     tengahnya BENAR-BENAR transparan (bukan ketutup warna gradient). */
+  .odyssey-ask::before {
+    content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 2px;
+    background: linear-gradient(90deg, #3b82f6 0%, #4f8df0 30%, #a97fd6 62%, #e5566b 100%);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+            mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+    pointer-events: none;
+  }
+  .odyssey-ask:hover { box-shadow: 0 0 10px rgba(137,110,220,.35); background: rgba(137,110,220,.06); }
+  .odyssey-ask.is-open { box-shadow: 0 0 12px rgba(229,86,107,.4); }
+  .odyssey-ask-logo { width: 20px; height: 20px; flex-shrink: 0; border-radius: 50%; object-fit: cover; display: block; }
+  .odyssey-ask.odyssey-hidden { display: none; }
+
+  /* ===== Panel Popup Chat — muncul begitu FAB diklik (bukan di-drag) ===== */
+  .odyssey-popup {
+    position: fixed; right: 12px; top: 44px; bottom: auto; z-index: 9998;
+    width: 520px; height: 720px;
+    min-width: 300px; min-height: 340px;
+    max-width: calc(100vw - 24px); max-height: calc(100vh - 56px);
+    background: #0b1329; border: 1px solid #1e293b; border-radius: 14px;
+    box-shadow: 0 12px 40px rgba(0,0,0,.5); overflow: hidden;
+    display: none; flex-direction: column;
+  }
+  .odyssey-popup.show { display: flex; }
+  /* Handle resize custom — WAJIB elemen terpisah di atas iframe (bukan pakai
+     CSS resize:both bawaan), karena iframe di dalam .odyssey-popup-body
+     nutupin seluruh area kotak termasuk pojoknya, jadi grip resize bawaan
+     browser gak pernah kena klik (ketutup iframe duluan). */
+  .odyssey-resize-handle {
+    position: absolute; left: 0; bottom: 0; width: 20px; height: 20px;
+    z-index: 20; cursor: nesw-resize; touch-action: none;
+    background:
+      linear-gradient(225deg, transparent 0 50%, rgba(148,163,184,.6) 50% 58%, transparent 58% 100%),
+      linear-gradient(225deg, transparent 0 70%, rgba(148,163,184,.6) 70% 78%, transparent 78% 100%);
+    border-bottom-left-radius: 14px;
+  }
+  .odyssey-popup-head {
+    flex-shrink: 0; height: 40px; display: flex; align-items: center; justify-content: space-between;
+    padding: 0 6px 0 12px; background: #131c33; border-bottom: 1px solid #1e293b;
+    color: #f1f5f9; font-weight: 700; font-size: 12.5px;
+  }
+  /* "The" tetep pakai warna default header (putih pucat) — kalau dipaksa
+     item/hitam beneran malah ketelen sama background gelap #131c33 ini,
+     jadi gak kebaca. "Odyssey" dikasih warna oranye aksen (samain kayak
+     tab aktif di topnav) biar dua kata itu kebeda jelas. */
+  .odyssey-popup-title .odyssey-accent { color: #e67e22; }
+  .odyssey-popup-head-actions { display: flex; align-items: center; gap: 6px; }
+  .odyssey-popup-head-actions button {
+    background: transparent; border: none; color: #94a3b8; font-size: 14px; cursor: pointer;
+    width: 26px; height: 26px; border-radius: 6px;
+  }
+  .odyssey-popup-head-actions button:hover { background: rgba(255,255,255,.08); color: #f1f5f9; }
+  /* Tombol "Refresh Data" — sebelumnya nempel di dalam iframe (topbar-nya
+     sendiri, di atas chat-log), sekarang dipindah naik ke title bar popup ini
+     biar sebaris sama "The Odyssey", jadi area di dalam iframe di bawahnya
+     bisa full buat percakapan doang. Klik-nya nge-postMessage ke dalam
+     iframe (lihat script bawah) buat manggil ulang loadData() di sana. */
+  .odyssey-refresh-btn {
+    width: auto !important; height: auto !important;
+    padding: 5px 10px; border: 1px solid #1e293b !important; border-radius: 6px;
+    font-family: 'Inter', sans-serif; font-weight: 600; font-size: 10.5px !important;
+    white-space: nowrap;
+  }
+  .odyssey-refresh-btn:hover { border-color: #475569 !important; }
+  /* Iframe Odyssey TINGGAL DI SINI PERMANEN (satu-satunya wadahnya, dari awal
+     load sampai seterusnya) — TIDAK PERNAH dipindah/appendChild ke wadah lain.
+     Mindahin sebuah iframe yang udah ada isinya ke parent lain lewat DOM
+     (appendChild) bikin browser nge-reload iframe itu dari nol (browsing
+     context-nya di-reset), which is kenapa chat history-nya ilang tiap popup
+     ditutup-buka lagi. Solusinya: iframe diem di tempat, yang gonta-ganti
+     cuma TAMPILAN wadahnya lewat class ".tab-mode" (lihat di bawah) — jadi
+     dari sudut pandang iframe, dia gak pernah "pindah" sama sekali. */
+  .odyssey-popup-body { flex: 1; min-height: 0; position: relative; }
+  .odyssey-popup-body iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: none; display: block; }
+  /* Pas lagi nge-drag handle resize, iframe DIMATIIN sementara pointer-nya —
+     kalau enggak, begitu kursor mouse lewat di atas iframe pas drag, event
+     mousemove-nya kesedot masuk ke document iframe (browsing context beda),
+     bukan ke window luar yang lagi ngitung resize-nya, jadi macet di tengah
+     jalan begitu kursor nyentuh area iframe. */
+  .odyssey-popup.resizing .odyssey-popup-body iframe { pointer-events: none; }
+
+  /* ===== Mode "tab penuh" (cuma kepake sekarang kalau tombol ⛶ "buka
+     tampilan penuh" di popup diklik — tab "AI Agent Odyssey" sendiri udah
+     disembunyiin dari topnav) =====
+     Wadah yang SAMA PERSIS dipakai di mode popup, cuma di-restyle jadi
+     ngisi seluruh area konten (persis posisi ".frames"). Title bar (judul +
+     tombol Refresh Data/⛶/✕) TETEP keliatan di mode ini — cuma resize handle
+     doang yang disembunyiin (gak relevan lagi wong ukurannya udah full).
+     width/height dikasih !important buat nimpa inline style w/h peninggalan
+     drag-resize popup (kalau user sempet resize popup-nya sebelum pindah ke
+     tab penuh). */
+  .odyssey-popup.tab-mode {
+    top: 38px; right: 0; bottom: 0; left: 0;
+    width: auto !important; height: auto !important;
+    min-width: 0; min-height: 0; max-width: none; max-height: none;
+    border: none; border-radius: 0; box-shadow: none;
+  }
+  .odyssey-popup.tab-mode .odyssey-resize-handle { display: none; }

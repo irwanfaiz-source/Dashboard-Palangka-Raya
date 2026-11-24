@@ -1,0 +1,314 @@
+
+  :root{
+    --bg:#10141A; --panel:#171D26; --panel-2:#1E2530; --line:#2B3341;
+    --text:#E7EAEE; --muted:#8B93A1; --amber:#E8A33D; --cyan:#4FD1C5; --red:#E4604D;
+    --paper:#F4F1E9; --paper-ink:#23201A; --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;}
+  body{
+    background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans-serif;
+    height:100vh; overflow:hidden; padding:16px 24px; display:flex; justify-content:center;
+  }
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  .wrap{max-width:none; width:100%; display:flex; flex-direction:column; height:calc(100vh - 32px);}
+
+  header{
+    display:flex; align-items:baseline; justify-content:space-between;
+    border-bottom:1px solid var(--line); padding-bottom:16px; margin-bottom:14px; flex-wrap:wrap; gap:8px;
+  }
+  header .title{font-size:20px; font-weight:600; letter-spacing:-.01em;}
+  header .title span{color:var(--amber);}
+  header .sub{display:none;}
+
+  .topbar{
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+    background:var(--panel); border:1px solid var(--line); border-radius:9px;
+    padding:10px 12px; margin-bottom:14px; font-size:13px;
+  }
+  .topbar label{color:var(--muted); font-size:12px;}
+  .topbar input[type=date]{
+    background:var(--panel-2); border:1px solid var(--line); color:var(--text);
+    padding:6px 8px; border-radius:6px; font-family:'IBM Plex Mono',monospace; font-size:12px;
+  }
+  .topbar .stat{display:none;}
+  .topbar .stat b{color:var(--text);}
+  .switch{position:relative; width:34px; height:18px; flex:none;}
+  .switch input{opacity:0; width:0; height:0; position:absolute;}
+  .slider{position:absolute; inset:0; background:#39424F; border-radius:20px; cursor:pointer; transition:.15s;}
+  .slider:before{content:""; position:absolute; height:12px; width:12px; left:3px; top:3px; background:var(--text); border-radius:50%; transition:.15s;}
+  .switch input:checked + .slider{background:var(--cyan);}
+  .switch input:checked + .slider:before{transform:translateX(16px); background:#0D1A18;}
+  .spacer{flex:1;}
+  .icon-btn{
+    background:transparent; border:1px solid var(--line); color:var(--muted);
+    border-radius:6px; padding:5px 10px; font-size:12px; cursor:pointer; font-family:inherit;
+  }
+  .icon-btn:hover{color:var(--cyan); border-color:var(--cyan);}
+
+  .chat-panel{
+    flex:1; display:flex; flex-direction:column; background:var(--panel);
+    border:1px solid var(--line); border-radius:var(--radius); overflow:hidden;
+  }
+  #chatLog{flex:1; overflow-y:auto; padding:18px; display:flex; flex-direction:column; gap:12px;}
+  /* Scrollbar chat dibikin tipis & nyatu sama tema gelap, bukan scrollbar
+     tebal default browser yang norak nongol di kanan. */
+  #chatLog{scrollbar-width:thin; scrollbar-color:var(--line) transparent;}
+  #chatLog::-webkit-scrollbar{width:6px;}
+  #chatLog::-webkit-scrollbar-track{background:transparent;}
+  #chatLog::-webkit-scrollbar-thumb{background:var(--line); border-radius:10px;}
+  #chatLog::-webkit-scrollbar-thumb:hover{background:var(--muted);}
+
+  /* --chat-msg-max-width & --chat-font-size diatur dari JS (panel Setting),
+     nilai di sini cuma fallback default kalau user belum pernah ngatur apa-apa. */
+  .msg{max-width:var(--chat-msg-max-width, min(78%, 720px)); display:flex; flex-direction:column; gap:6px;
+    animation:msgIn .28s cubic-bezier(.34,1.2,.64,1) both;}
+  @keyframes msgIn{
+    0%{opacity:0; transform:translateY(10px) scale(.98);}
+    100%{opacity:1; transform:translateY(0) scale(1);}
+  }
+  .msg.user{align-self:flex-end; align-items:flex-end;}
+  .msg.agent{align-self:flex-start; align-items:flex-start;}
+  .msg-row{display:flex; align-items:flex-end; gap:8px;}
+  .msg.user .msg-row{flex-direction:row-reverse;}
+  .avatar{
+    width:26px; height:26px; border-radius:50%; flex:none; display:flex; align-items:center;
+    justify-content:center; font-size:13px; font-weight:700; overflow:hidden;
+  }
+  .avatar img{width:100%; height:100%; object-fit:cover; display:block;}
+  .avatar.avatar-agent{background:linear-gradient(135deg,var(--amber),var(--red)); color:#241704;}
+  .avatar.avatar-user{background:var(--panel-2); border:1px solid var(--line); color:var(--cyan);}
+  .bubble{padding:10px 14px; border-radius:14px; font-size:var(--chat-font-size, 14px); line-height:1.5; white-space:pre-wrap;}
+  .msg.user .bubble{background:var(--amber); color:#241704; border-bottom-right-radius:4px;}
+  .msg.agent .bubble{background:var(--panel-2); border:1px solid var(--line); border-bottom-left-radius:4px; white-space:normal;}
+  .msg .who{font-size:10px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); display:flex; align-items:center; gap:6px;}
+  .model-badge{
+    font-size:9px; text-transform:none; letter-spacing:0; background:var(--panel-2);
+    border:1px solid var(--line); color:var(--cyan); padding:1px 7px; border-radius:20px; font-weight:600;
+  }
+  .typewriter-cursor{display:inline-block; width:2px; height:13px; background:var(--cyan); margin-left:2px; vertical-align:-2px; animation:caretBlink .8s step-end infinite;}
+  @keyframes caretBlink{0%,100%{opacity:1;}50%{opacity:0;}}
+
+  /* ===== Markdown rendering di dalam bubble agent ===== */
+  .bubble p{margin:0 0 8px;}
+  .bubble p:last-child{margin-bottom:0;}
+  .bubble strong{color:#fff;}
+  .bubble a{color:var(--cyan);}
+  .bubble ul, .bubble ol{margin:4px 0 8px; padding-left:20px;}
+  .bubble li{margin:2px 0;}
+  .bubble code{background:rgba(255,255,255,.08); padding:1px 5px; border-radius:4px; font-family:'IBM Plex Mono',monospace; font-size:12.5px;}
+  .bubble pre{background:#0d1117; border:1px solid var(--line); border-radius:8px; padding:10px 12px; overflow-x:auto; margin:6px 0;}
+  .bubble pre code{background:transparent; padding:0; font-size:12.5px; line-height:1.5;}
+
+  /* ===== Quick-reply shortcut chips ===== */
+  .quick-replies{display:flex; flex-wrap:wrap; gap:6px; align-self:flex-start; max-width:100%;}
+  .quick-reply-chip{
+    background:var(--panel-2); border:1px solid var(--line); color:var(--text);
+    border-radius:20px; padding:6px 12px; font-size:12px; cursor:pointer; font-family:inherit;
+    transition:.15s;
+  }
+  .quick-reply-chip:hover{border-color:var(--amber); color:var(--amber);}
+
+  /* ===== Mini header chat: avatar + judul + New Chat ===== */
+  .chat-header{
+    display:flex; align-items:center; gap:8px; padding:10px 14px;
+    border-bottom:1px solid var(--line); background:var(--panel);
+  }
+  .chat-header .chat-header-title{font-size:13px; font-weight:700; flex:1; white-space:nowrap;}
+  .chat-header .chat-header-title .brand-the{color:var(--text);}
+  .chat-header .chat-header-title .brand-odyssey{color:var(--amber);}
+  .chat-header .chat-header-sub{font-size:10px; color:var(--muted); font-weight:400;}
+  .new-chat-btn{
+    display:flex; align-items:center; gap:5px; background:transparent; border:1px solid var(--line);
+    color:var(--muted); border-radius:6px; padding:5px 10px; font-size:11px; cursor:pointer; font-family:inherit;
+  }
+  .new-chat-btn:hover{color:var(--red); border-color:var(--red);}
+
+  /* ===== Lightbox gambar in-app ===== */
+  .lightbox-overlay{
+    position:fixed; inset:0; background:rgba(10,13,18,.88); z-index:99999;
+    display:none; align-items:center; justify-content:center; padding:24px; cursor:zoom-out;
+  }
+  .lightbox-overlay.show{display:flex; animation:lbFade .15s ease-out both;}
+  @keyframes lbFade{from{opacity:0;}to{opacity:1;}}
+  .lightbox-overlay img{max-width:100%; max-height:100%; border-radius:8px; box-shadow:0 10px 40px rgba(0,0,0,.5); cursor:default;}
+  .lightbox-close{
+    position:absolute; top:16px; right:20px; background:transparent; border:1px solid var(--line);
+    color:var(--text); width:32px; height:32px; border-radius:50%; font-size:16px; cursor:pointer;
+  }
+
+  .copy-btn{
+    align-self:flex-start; display:inline-flex; align-items:center; gap:5px;
+    background:transparent; border:1px solid var(--line); color:var(--muted);
+    border-radius:6px; padding:3px 9px; font-size:11px; cursor:pointer; font-family:inherit;
+    transition:.15s;
+  }
+  .copy-btn:hover{color:var(--cyan); border-color:var(--cyan);}
+  .copy-btn.copied{color:var(--cyan); border-color:var(--cyan);}
+
+  .msg-actions{display:flex; align-items:center; gap:6px; flex-wrap:wrap;}
+  .explain-panel, .details-panel{width:100%; max-width:100%;}
+  .explain-panel .inner, .details-panel .inner{white-space:normal;}
+
+  .attach-card{
+    background:var(--paper); color:var(--paper-ink); border-radius:8px;
+    padding:12px 14px; font-size:12px; width:100%; max-width:100%; overflow-x:auto;
+  }
+  .attach-card table{width:100%; border-collapse:collapse;}
+  .attach-card th{
+    text-align:left; font-size:10px; text-transform:uppercase; letter-spacing:.05em;
+    color:#8A8368; padding:4px 6px; border-bottom:1px solid #DDD7C6; white-space:nowrap;
+  }
+  .attach-card td{padding:5px 6px; border-bottom:1px solid #ECE7D8; font-family:'IBM Plex Mono',monospace; white-space:nowrap;}
+  .attach-card tr:last-child td{border-bottom:none;}
+  .badge{display:inline-block; padding:1px 7px; border-radius:20px; font-size:10px; font-family:'IBM Plex Sans',sans-serif; font-weight:600;}
+  .badge-late{background:rgba(228,96,77,.15); color:#C6482F;}
+  .badge-early{background:rgba(45,150,140,.15); color:#237A70;}
+  .badge-ontime{background:rgba(139,147,161,.2); color:#5B6472;}
+  .badge-transit{background:rgba(232,163,61,.18); color:#B4761A;}
+
+  .typing{font-size:12px; color:var(--muted); font-style:italic; padding-left:4px;}
+  .typing-dots{display:inline-flex; align-items:center; gap:4px; padding:6px 4px;}
+  .typing-dots span{
+    width:6px; height:6px; border-radius:50%; background:var(--muted);
+    animation:typingBounce 1.2s infinite ease-in-out both;
+  }
+  .typing-dots span:nth-child(1){animation-delay:-0.24s;}
+  .typing-dots span:nth-child(2){animation-delay:-0.12s;}
+  .typing-dots span:nth-child(3){animation-delay:0s;}
+  @keyframes typingBounce{
+    0%, 80%, 100%{transform:scale(.6); opacity:.4;}
+    40%{transform:scale(1); opacity:1;}
+  }
+
+  .chat-input-row{
+    position:relative;
+    display:flex; flex-direction:column; gap:8px; padding:12px; border-top:1px solid var(--line); background:var(--panel);
+  }
+
+  /* ===== Command Bar / AI Command Palette (slash commands + ⌘K) ===== */
+  .cmd-palette{
+    position:absolute; left:12px; right:12px; bottom:100%; margin-bottom:10px;
+    background:var(--panel-2); border:1px solid var(--line); border-radius:12px;
+    padding:6px; box-shadow:0 12px 28px rgba(0,0,0,.4); max-height:280px; overflow-y:auto;
+    display:none; z-index:20;
+  }
+  .cmd-palette.show{display:block;}
+  .cmd-palette-hint{
+    font-size:10px; color:var(--muted); padding:6px 10px 8px; letter-spacing:.05em; text-transform:uppercase;
+  }
+  .cmd-palette-item{
+    display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:8px; cursor:pointer;
+  }
+  .cmd-palette-item:hover, .cmd-palette-item.active{background:var(--panel);}
+  .cmd-palette-item .cmd-icon{font-size:16px; flex:none; width:22px; text-align:center;}
+  .cmd-palette-item .cmd-text{display:flex; flex-direction:column; gap:1px; min-width:0;}
+  .cmd-palette-item .cmd-name{
+    font-family:'IBM Plex Mono',monospace; font-size:12.5px; color:var(--cyan); font-weight:600;
+  }
+  .cmd-palette-item .cmd-desc{
+    font-size:11.5px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .model-select-row{display:flex; justify-content:flex-end;}
+  .model-select{
+    appearance:none; -webkit-appearance:none; -moz-appearance:none;
+    background-color:var(--panel-2); color:var(--muted); border:1px solid var(--line);
+    border-radius:20px; padding:5px 26px 5px 12px; font-size:11px; font-family:inherit;
+    cursor:pointer; max-width:100%;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238a93a1' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M6 9l6 6 6-6'/></svg>");
+    background-repeat:no-repeat; background-position:right 8px center; background-size:12px;
+  }
+  .model-select:focus{outline:none; border-color:var(--amber); color:var(--text);}
+  .chat-input-inner{display:flex; gap:8px;}
+  .chat-input-inner input{
+    flex:1; background:var(--panel-2); border:1px solid var(--line); color:var(--text);
+    padding:11px 14px; border-radius:20px; font-size:14px; font-family:inherit;
+  }
+  .chat-input-inner input:focus{outline:none; border-color:var(--amber);}
+  .chat-input-inner button{
+    background:var(--amber); color:#241704; border:none; border-radius:20px;
+    padding:0 20px; font-weight:600; font-size:13px; cursor:pointer; font-family:inherit;
+  }
+  .chat-input-inner button:disabled{opacity:.5; cursor:default;}
+
+  .img-preview-row{display:none; align-items:center; gap:10px; padding:4px 4px 0;}
+  .img-preview-row.show{display:flex;}
+  .img-preview-row .thumb-wrap{position:relative; width:52px; height:52px; flex:none;}
+  .img-preview-row img{width:52px; height:52px; object-fit:cover; border-radius:8px; border:1px solid var(--line); display:block;}
+  .img-preview-row .remove-img{
+    position:absolute; top:-6px; right:-6px; width:18px; height:18px; border-radius:50%;
+    background:var(--red); color:#fff; border:none; font-size:11px; line-height:1; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; padding:0;
+  }
+  .img-preview-row .hint{font-size:11px; color:var(--muted);}
+
+  .msg-image{max-width:220px; border-radius:10px; border:1px solid var(--line); display:block; cursor:zoom-in;}
+
+  details.note-details{margin-top:12px; font-size:12px; color:var(--muted);}
+  details.note-details summary{cursor:pointer; color:var(--cyan);}
+  details.note-details .inner{padding:10px 2px 2px; line-height:1.6;}
+  details.note-details code{background:var(--panel-2); padding:1px 5px; border-radius:4px; font-family:'IBM Plex Mono',monospace;}
+
+  /* ===== Row utama: sidebar riwayat sesi (kiri) + chat-panel (kanan) =====
+     Sengaja dipisah dari .wrap (yang tetep flex-column) biar chat-panel
+     LAMA gak keganggu struktur/CSS-nya — cuma dibungkus sejajar sama
+     sidebar baru. Sidebar defaultnya ketutup (class "hidden") biar area
+     chat tetep full kepake kayak sebelumnya, user tinggal klik tombol
+     "Riwayat" di header buat buka/tutup. */
+  .main-row{flex:1; display:flex; gap:12px; min-height:0;}
+  .sessions-sidebar{
+    width:220px; flex:none; display:flex; flex-direction:column; gap:8px;
+    background:var(--panel); border:1px solid var(--line); border-radius:var(--radius);
+    padding:10px; overflow:hidden;
+  }
+  .sessions-sidebar.hidden{display:none;}
+  .sessions-sidebar-header{
+    display:flex; align-items:center; justify-content:space-between;
+    font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.05em;
+  }
+  .sessions-sidebar-header button{
+    background:transparent; border:none; color:var(--muted); cursor:pointer; font-size:13px; padding:2px;
+  }
+  .sessions-sidebar-header button:hover{color:var(--red);}
+  .new-session-btn{
+    background:var(--panel-2); border:1px solid var(--line); color:var(--text); border-radius:8px;
+    padding:8px 10px; font-size:12px; cursor:pointer; font-family:inherit; text-align:left;
+  }
+  .new-session-btn:hover{border-color:var(--amber); color:var(--amber);}
+  .sessions-list{
+    flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:4px;
+    scrollbar-width:thin; scrollbar-color:var(--line) transparent;
+  }
+  .sessions-list::-webkit-scrollbar{width:6px;}
+  .sessions-list::-webkit-scrollbar-thumb{background:var(--line); border-radius:10px;}
+  .session-item{
+    display:flex; flex-direction:column; gap:2px; padding:8px 9px; border-radius:8px; cursor:pointer;
+    border:1px solid transparent; background:transparent; text-align:left; font-family:inherit; width:100%;
+  }
+  .session-item:hover{background:var(--panel-2);}
+  .session-item.active{background:var(--panel-2); border-color:var(--cyan);}
+  .session-item .session-title{
+    font-size:12px; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .session-item .session-meta{font-size:10px; color:var(--muted);}
+  .sessions-empty{font-size:11px; color:var(--muted); padding:8px 4px; line-height:1.5;}
+
+  /* ===== Tombol-tombol aksi tambahan di chat-header (Riwayat/Sound/Setting) ===== */
+  .header-actions{display:flex; align-items:center; gap:6px; position:relative;}
+
+  /* ===== Popover Setting (ukuran font & lebar chat) ===== */
+  .settings-popover{
+    position:absolute; top:36px; right:0; background:var(--panel-2); border:1px solid var(--line);
+    border-radius:10px; padding:12px; width:190px; z-index:50; display:none; flex-direction:column; gap:10px;
+    box-shadow:0 8px 24px rgba(0,0,0,.45);
+  }
+  .settings-popover.show{display:flex;}
+  .settings-popover .field label{
+    font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em;
+    display:block; margin-bottom:4px;
+  }
+  .settings-popover select{
+    width:100%; background:var(--panel); border:1px solid var(--line); color:var(--text);
+    border-radius:6px; padding:6px 8px; font-size:12px; font-family:inherit; cursor:pointer;
+  }
+  .settings-popover select:focus{outline:none; border-color:var(--amber);}

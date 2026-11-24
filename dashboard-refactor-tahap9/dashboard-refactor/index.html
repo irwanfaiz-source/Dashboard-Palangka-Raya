@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<title>Internal Palangka Raya DC</title>
+<link rel="icon" type="image/png" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏭</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+<link rel="stylesheet" href="assets/css/index.css">
+</head>
+<body>
+
+<div class="shell">
+  <div class="topnav">
+    <span class="brand">🏢 Internal PKY DC</span>
+    <button class="tab-btn active" id="tabBtnRestTime" onclick="showTab('rest-time')">⏳ Rest Time Monitoring</button>
+    <button class="tab-btn" id="tabBtnPerformanceBagger" onclick="showTab('performance-bagger')">🏆 Performance Bagger</button>
+    <button class="tab-btn" id="tabBtnInbound" onclick="showTab('inbound')">🚚 Inbound</button>
+    <button class="tab-btn" id="tabBtnOdyssey" onclick="showTab('odyssey')">🤖 AI Agent Odyssey</button>
+    <button class="tab-btn" id="tabBtnOutbound" onclick="showTab('outbound')">📦 Outbound Monitoring</button>
+    <button class="tab-btn" id="tabBtnInventoryControl" onclick="showTab('inventory-control')">🗃️ Inventory Control</button>
+    <div class="topnav-spacer"></div>
+    <button type="button" class="odyssey-ask odyssey-hidden" id="odysseyAsk" title="Tanya Odyssey">
+      <img class="odyssey-ask-logo" src="assets/img/odyssey-logo.png" alt="">
+      <span>Need help with Dashboard? Ask Odyssey</span>
+    </button>
+    <div class="topnav-spacer"></div>
+    <button class="logout-btn" onclick="logoutApp()">↩ Keluar</button>
+  </div>
+  <div class="frames" id="frames">
+    <iframe id="iframeRestTime" data-src="rest-time.html" title="Rest Time Monitoring"></iframe>
+    <iframe id="iframePerformanceBagger" data-src="performance-bagger.html" title="Performance Bagger"></iframe>
+    <iframe id="iframeInbound" data-src="inbound.html" title="Inbound"></iframe>
+    <iframe id="iframeOutbound" data-src="outbound.html" title="Outbound Monitoring"></iframe>
+    <iframe id="iframeInventoryControl" data-src="inventory-control.html" title="Inventory Control"></iframe>
+  </div>
+</div>
+
+<!-- ===== Popup Odyssey — dibuka dari bar "Ask Odyssey" di topnav. Iframe #iframeOdyssey tinggal PERMANEN di sini (gak pernah dipindah) biar sesi chat gak reload. ===== -->
+<div class="odyssey-popup" id="odysseyPopup">
+  <div class="odyssey-popup-head">
+    <span class="odyssey-popup-title">The <span class="odyssey-accent">Odyssey</span></span>
+    <div class="odyssey-popup-head-actions">
+      <button type="button" id="odysseyRefreshBtn" class="odyssey-refresh-btn" title="Refresh data trip Inbound">Refresh Data</button>
+      <button type="button" id="odysseyExpandBtn" title="Buka tampilan penuh">⛶</button>
+      <button type="button" id="odysseyPopupCloseBtn" title="Tutup">✕</button>
+    </div>
+  </div>
+  <div class="odyssey-popup-body" id="odysseyPopupBody">
+    <iframe id="iframeOdyssey" data-src="report-agent.html?v=2" title="AI Agent Odyssey"></iframe>
+  </div>
+  <div class="odyssey-resize-handle" id="odysseyResizeHandle" title="Tarik untuk resize"></div>
+</div>
+
+<script src="auth-guard.js"></script>
+<script src="assets/js/index/app-shell.js"></script>
+
+</body>
+</html>

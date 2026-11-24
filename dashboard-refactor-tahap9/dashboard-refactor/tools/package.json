@@ -1,0 +1,11 @@
+{
+  "name": "dashboard-tools",
+  "private": true,
+  "description": "Alat bantu dev (tes & lint). Sengaja terpisah dari root supaya Netlify gak ikut install.",
+  "devDependencies": {
+    "acorn": "^8.11.0",
+    "eslint-scope": "^8.0.0",
+    "globals": "^15.0.0",
+    "jsdom": "^24.0.0"
+  }
+}

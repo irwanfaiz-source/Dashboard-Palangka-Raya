@@ -1,0 +1,19 @@
+
+body { font-size: 13px; }
+html body .text-\[8px\]  { font-size: 10px !important; }
+html body .text-\[9px\]  { font-size: 11px !important; }
+html body .text-\[10px\] { font-size: 12px !important; }
+html body .text-\[11px\] { font-size: 13px !important; }
+th, td { padding: 5px 7px !important; }
+.nz { color: #cbd5e1; font-weight: 400; }
+.dark .nz { color: #475569; }
+.exec-line { display: flex; gap: 10px; align-items: flex-start; padding: 3px 0; font-size: 13px; line-height: 1.5; }
+.exec-line > i { width: 16px; margin-top: 4px; text-align: center; flex-shrink: 0; }
+.packer-scroll { max-height: 560px; overflow-y: auto; }
+.ux-odyssey { position: fixed !important; top: auto !important; left: auto !important; right: 14px !important; bottom: 14px !important;
+  transform: scale(.7) !important; transform-origin: bottom right; opacity: .55; transition: opacity .2s; z-index: 40 !important; }
+.ux-odyssey:hover { opacity: 1; }
+.jump-btn { padding: 4px 12px; border-radius: 6px; font-size: 12px; font-weight: 700; color: #cbd5e1; transition: background .15s, color .15s; }
+.jump-btn:hover { color: #fff; background: rgba(255,255,255,.12); }
+.jump-btn.active { background: #fbbf24; color: #0f172a; }
+#occupancySection, #agingSection { scroll-margin-top: 8px; }
