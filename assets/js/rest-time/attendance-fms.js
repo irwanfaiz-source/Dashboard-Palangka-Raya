@@ -208,7 +208,18 @@ function attnInfoText(m) {
         (m.excluded ? " · " + m.excluded + " absen dept lain diabaikan (hanya SOC, EHA & Cache Operator)" : "") + (m.importedBy ? " · diimport " + m.importedBy + " " + m.importedAt : "");
 }
 
+// Satu baris per OpsID + tanggal (ambil Clock In paling awal), jadi baris dobel akibat pembersihan tanggal tidak ikut tampil
+function attnDedupeRows(list) {
+    const map = {};
+    list.forEach(function (r) {
+        const k = String(r.opsId).toLowerCase() + "|" + r.date;
+        if (!map[k] || r.time < map[k].time) map[k] = r;
+    });
+    return Object.keys(map).map(function (k) { return map[k]; });
+}
+
 function attnApplyData(list, meta, forceDates) {
+    list = attnDedupeRows(list.filter(function (r) { return r.date; }));
     attnRows = list;
     const cleanDates = list.map(function (r) { return r.date; }).filter(Boolean).sort();   // min/max dihitung ulang dari data yang sudah bersih
     meta = Object.assign({}, meta, { min: cleanDates[0] || "", max: cleanDates[cleanDates.length - 1] || "" });
