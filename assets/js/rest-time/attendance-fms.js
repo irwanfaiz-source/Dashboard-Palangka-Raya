@@ -1,4 +1,3 @@
-
 // ===== Modul: Pre-Work by Attendance FMS =====
 // Input: Raw Attendance FMS. Yang dicek hanya operator yang sudah Clock In; statusnya dari getPreWorkStatus() (sumber sama dengan modul Rest Time).
 let attnRows = [];
@@ -24,10 +23,33 @@ function attnParseCsv(text) {
     return rows;
 }
 
-function attnYmd(s) {
+// Validasi tanggal: kalau "bulan" > 12 tapi "hari" <= 12 berarti urutannya kebalik (yyyy-dd-mm), ditukar otomatis
+function attnFixYmd(y, m, d) {
+    if (+m > 12 && +d <= 12) { const t = m; m = d; d = t; }
+    if (+m < 1 || +m > 12 || +d < 1 || +d > 31) return "";
+    return y + "-" + m + "-" + d;
+}
+
+// Urutan tanggal format slash ("11/27/2026"): "mdy" (bulan/hari, default export FMS) atau "dmy" (hari/bulan).
+// Dideteksi per file dari kolom Clock In Date: ada angka pertama > 12 -> dmy; ada angka kedua > 12 -> mdy; kalau ambigu -> mdy.
+function attnDetectDateOrder(values) {
+    let a12 = 0, b12 = 0;
+    values.forEach(function (v) {
+        const m = String(v || "").trim().match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2,4})/); if (!m) return;
+        if (+m[1] > 12) a12++; if (+m[2] > 12) b12++;
+    });
+    return a12 > b12 ? "dmy" : "mdy";
+}
+
+function attnYmd(s, order) {
     s = String(s || "").trim(); if (!s) return "";
-    let m = s.match(/^(\d{4})-(\d{2})-(\d{2})/); if (m) return m[1] + "-" + m[2] + "-" + m[3];
-    m = s.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})/); if (m) return m[3] + "-" + m[2].padStart(2, "0") + "-" + m[1].padStart(2, "0");
+    let m = s.match(/^(\d{4})-(\d{2})-(\d{2})/); if (m) return attnFixYmd(m[1], m[2], m[3]);
+    m = s.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2,4})/);
+    if (m) {
+        const y = m[3].length === 2 ? "20" + m[3] : m[3];
+        const mo = order === "dmy" ? m[2] : m[1], dy = order === "dmy" ? m[1] : m[2];
+        return attnFixYmd(y, mo.padStart(2, "0"), dy.padStart(2, "0"));
+    }
     const d = new Date(s); return isNaN(d) ? "" : getWorkingDateStr(d);
 }
 
@@ -46,11 +68,12 @@ function attnBuildRows(rows) {
     const iAg = ix("agency"), iShift = ix("shift name"), iStart = ix("start time"), iSt = ix("clock in status");
     let iDept = ix("event department"); if (iDept < 0) iDept = ix("profile department");
     const get = function (r, i) { return i < 0 ? "" : String(r[i] == null ? "" : r[i]).trim(); };
+    const order = attnDetectDateOrder(rows.slice(1).map(function (r) { return get(r, iCd); }));
     const map = {}; let skipped = 0, excluded = 0, totalRows = 0;
     rows.slice(1).forEach(function (r) {
         const id = normalizeOpsId(get(r, iId)); if (!id) return;
         totalRows++;
-        const cd = attnYmd(get(r, iCd)), ct = get(r, iCt);
+        const cd = attnYmd(get(r, iCd), order), ct = get(r, iCt);
         if (!cd || !ct) { skipped++; return; }
         if (!attnDeptAllowed(get(r, iDept))) { excluded++; return; }  // auto filter: hanya SOC, EHA & Cache Operator
         const rec = { opsId: id, name: get(r, iName), agency: get(r, iAg), dept: get(r, iDept), start: get(r, iStart), shiftName: get(r, iShift), shift: attnShiftBucket(get(r, iStart)), date: cd, time: ct, status: get(r, iSt) };
@@ -174,7 +197,11 @@ function attnPreviewConfirm() {
 // Baris disimpan sebagai array pendek (urutan kolom di bawah) supaya ukuran kecil; import baru DIGABUNG dgn data lama (kunci OpsID+tanggal; kunci sama = diganti data baru).
 let attnListenerRef = null;
 function attnRowToArr(r) { return [r.opsId, r.name, r.agency, r.dept, r.shiftName, r.shift, r.date, r.time, r.status, r.start]; }
-function attnRowFromArr(a) { return { opsId: a[0] || "", name: a[1] || "", agency: a[2] || "", dept: a[3] || "", shiftName: a[4] || "", shift: a[5] || "", date: a[6] || "", time: a[7] || "", status: a[8] || "", start: a[9] || "" }; }
+function attnRowFromArr(a) {
+    const raw = a[6] || "", p = raw.split("-");   // bersihkan tanggal kebalik dari data lama di Firebase
+    const date = p.length === 3 ? attnFixYmd(p[0], p[1], p[2]) : raw;
+    return { opsId: a[0] || "", name: a[1] || "", agency: a[2] || "", dept: a[3] || "", shiftName: a[4] || "", shift: a[5] || "", date: date, time: a[7] || "", status: a[8] || "", start: a[9] || "" };
+}
 
 function attnInfoText(m) {
     return m.fileName + " · " + m.count + " absen (" + m.min + " s/d " + m.max + ")" + (m.skipped ? " · " + m.skipped + " baris tanpa Clock In diabaikan" : "") +
@@ -183,6 +210,8 @@ function attnInfoText(m) {
 
 function attnApplyData(list, meta, forceDates) {
     attnRows = list;
+    const cleanDates = list.map(function (r) { return r.date; }).filter(Boolean).sort();   // min/max dihitung ulang dari data yang sudah bersih
+    meta = Object.assign({}, meta, { min: cleanDates[0] || "", max: cleanDates[cleanDates.length - 1] || "" });
     const depts = Array.from(new Set(list.map(function (r) { return r.dept; }).filter(Boolean))).sort();
     const sel = document.getElementById("attnFilterDept"), prev = sel.value;
     sel.innerHTML = '<option value="All">All Dept</option>' + depts.map(function (d) { return '<option value="' + escapeHtml(d) + '">' + escapeHtml(d) + '</option>'; }).join("");
