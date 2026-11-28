@@ -153,13 +153,13 @@
   // (session-nya nempel di project yang beda) → dilempar balik lagi ke login.html.
   // Kalau mau ganti project Firebase, ubah DI SINI DAN DI login.html SEKALIGUS.
   var DEFAULT_FB_CONFIG = {
-    apiKey: "AIzaSyBn1bdUH8uRc_hFq0h4liWd8vLDOLYZFMA",
-    authDomain: "dashboardpalangkarayadc.firebaseapp.com",
-    databaseURL: "https://dashboardpalangkarayadc-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "dashboardpalangkarayadc",
-    storageBucket: "dashboardpalangkarayadc.firebasestorage.app",
-    messagingSenderId: "796202356400",
-    appId: "1:796202356400:web:d5360896e59dcbba66f575"
+    apiKey: "AIzaSyDEBFNhtORydBWVfLuvgJYhzzY9CDou0qw",
+    authDomain: "pr-dc-rest-monitoring.firebaseapp.com",
+    databaseURL: "https://pr-dc-rest-monitoring-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "pr-dc-rest-monitoring",
+    storageBucket: "pr-dc-rest-monitoring.firebasestorage.app",
+    messagingSenderId: "91497060421",
+    appId: "1:91497060421:web:cb84fb85a7b4a4c90fab2c"
   };
 
   // Overlay "Memeriksa akses..." biar konten gak keliatan sebelum login-nya kevalidasi.
