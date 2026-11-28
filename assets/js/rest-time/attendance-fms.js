@@ -204,6 +204,7 @@ function attnRowFromArr(a) {
 }
 
 function attnInfoText(m) {
+    if (!m.count) return "Belum ada data attendance." + (m.importedBy ? " Direset oleh " + m.importedBy + " " + m.importedAt + "." : "") + " Import Raw Attendance FMS untuk mulai.";
     return m.fileName + " · " + m.count + " absen (" + m.min + " s/d " + m.max + ")" + (m.skipped ? " · " + m.skipped + " baris tanpa Clock In diabaikan" : "") +
         (m.excluded ? " · " + m.excluded + " absen dept lain diabaikan (hanya SOC Operator, EHA Operator, Cache Operator & SOC PIC)" : "") + (m.importedBy ? " · diimport " + m.importedBy + " " + m.importedAt : "");
 }
@@ -295,8 +296,8 @@ function attnFetchAll() {
     if (attnFetching) { attnRecheck = true; return; }
     attnFetching = true;
     fbDb.ref(FB_ROOT + "/attendanceFms").once("value").then(function (snap) {
-        const v = snap.val(); if (!v || !v.rows) return;
-        const rowsArr = Object.keys(v.rows).map(function (k) { return v.rows[k]; }), meta = attnMetaOf(v), log = attnLogOf(v);
+        const v = snap.val(); if (!v) return;
+        const rowsArr = v.rows ? Object.keys(v.rows).map(function (k) { return v.rows[k]; }) : [], meta = attnMetaOf(v), log = attnLogOf(v);   // rows kosong = habis Reset Data
         attnCurrentVer = attnVerOf(v.rev, v.importedAt);
         attnUseRaw(rowsArr, meta, log);
         return attnCachePut({ schema: ATTN_CACHE_SCHEMA, ver: attnCurrentVer, rows: rowsArr, meta: meta, importLog: log });
@@ -798,3 +799,65 @@ function attnApplyModuleVisibility(mod) {
     if (other) attnAttachListener();
     if (other) { $("tabRestBtn").classList.remove("active"); $("tabAssetBtn").classList.remove("active"); }
 }
+
+
+// ===== Reset Data Attendance FMS: hapus seluruh baris attendance di Firebase (sekali klik + 1x konfirmasi) =====
+// Yang dihapus: rows + meta (fileName, count, min, max, dst). Yang TETAP: importLog (riwayat), ditambah 1 entri "RESET DATA".
+// Berguna kalau ada data salah nyangkut (mis. tanggal kebalik dmy/mdy) karena import baru digabung dgn data lama, bukan menimpa semuanya.
+function attnResetData() {
+    if (!window.__authCanDelete) { showToast("🚫 Kamu gak punya akses buat reset data attendance. Hubungi admin kalau ini kesalahan.", "err"); return; }
+    if (!fbDb) { showToast("⚠️ Belum terhubung ke Firebase.", "info"); return; }
+    if (!attnRows.length) { showToast("ℹ️ Data attendance sudah kosong.", "info"); return; }
+    const ds = attnRows.map(function (r) { return r.date; }).filter(Boolean).sort();
+    const msg = "⚠️ RESET DATA ATTENDANCE FMS\n\n" +
+        "Semua " + attnRows.length + " absen (" + (ds[0] || "-") + " s/d " + (ds[ds.length - 1] || "-") + ") akan DIHAPUS PERMANEN dari Firebase untuk semua user.\n" +
+        "Riwayat import (Update Log) tetap disimpan.\n\nLanjut hapus?";
+    if (!confirm(msg)) { showToast("Reset dibatalkan. Data tidak berubah.", "info"); return; }
+
+    const btn = document.getElementById("attnResetBtn"); if (btn) btn.disabled = true;
+    const base = FB_ROOT + "/attendanceFms/", rev = Date.now(), who = window.__authUserEmail || "unknown";
+    const at = getWorkingDateStr(new Date()) + " " + new Date().toTimeString().slice(0, 5);
+    const meta = { fileName: "", count: 0, min: "", max: "", skipped: 0, excluded: 0, importedBy: who, importedAt: at };
+    const up = {};
+    Object.keys(meta).forEach(function (k) { up[base + k] = meta[k]; });
+    up[base + "rows"] = null; up[base + "rev"] = rev;   // rev baru supaya browser user lain (yg punya cache lama) otomatis ikut kosong
+    attnCurrentVer = attnVerOf(rev, at);   // tandai SEBELUM menulis, biar event lokal Firebase tidak memicu unduh ulang
+
+    fbDb.ref().update(up).then(function () {
+        const logEntry = { ts: Date.now(), at: at, by: who, file: "🗑️ RESET DATA (" + attnRows.length + " absen dihapus)", added: 0, updated: 0, total: 0, min: "", max: "", inFile: 0, skipped: 0, excluded: 0 };
+        const lu = {}, key = fbDb.ref(base + "importLog").push().key;
+        lu[base + "importLog/" + key] = logEntry;
+        const over = attnImportLog.length + 1 - ATTN_LOG_MAX;
+        if (over > 0) attnImportLog.slice(-over).forEach(function (e) { lu[base + "importLog/" + e.key] = null; });
+        return fbDb.ref().update(lu).then(function () {
+            const keep = over > 0 ? attnImportLog.slice(0, attnImportLog.length - over) : attnImportLog.slice();
+            attnImportLog = [Object.assign({ key: key }, logEntry)].concat(keep);
+        }).catch(function (err) { console.error(err); showToast("⚠️ Data terhapus, tapi log reset gagal dicatat. Cek Security Rules path attendanceFms/importLog.", "info"); });
+    }).then(function () {
+        attnLegacyMeta = meta;
+        attnApplyData([], meta, true);
+        showToast("🗑️ Data attendance FMS di Firebase sudah direset. Silakan import ulang file yang benar.", "ok");
+        return attnCachePut({ schema: ATTN_CACHE_SCHEMA, ver: attnCurrentVer, rows: [], meta: meta, importLog: attnImportLog });
+    }).catch(function (err) {
+        console.error(err); attnCurrentVer = null;
+        showToast("❌ Gagal reset data di Firebase. Cek Security Rules untuk path attendanceFms.", "err");
+    }).then(function () { if (btn) btn.disabled = false; });
+}
+
+// Tombol dipasang otomatis tepat setelah tombol Update Log (atau tombol Import) - nggak perlu ubah rest-time.html.
+// Kalau mau pasang manual di HTML: <button id="attnResetBtn" class="btn btn-danger" onclick="attnResetData()">🗑️ Reset Data</button>
+function attnInjectResetBtn() {
+    if (document.getElementById("attnResetBtn")) return true;
+    const anchor = document.querySelector('[onclick*="attnOpenImportLog"]') || document.querySelector('[onclick*="attnPickFile"]');
+    if (!anchor) return false;
+    const b = document.createElement("button");
+    b.id = "attnResetBtn"; b.type = "button"; b.className = anchor.className; b.onclick = attnResetData;
+    b.innerHTML = "🗑️ Reset Data"; b.title = "Hapus semua data attendance FMS di Firebase";
+    b.style.cssText = anchor.style.cssText + ";background:#dc2626;color:#fff;border-color:#b91c1c;";
+    anchor.insertAdjacentElement("afterend", b);
+    return true;
+}
+(function () {
+    const go = function () { if (!attnInjectResetBtn()) setTimeout(attnInjectResetBtn, 800); };
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", go); else go();
+})();
