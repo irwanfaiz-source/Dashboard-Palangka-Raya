@@ -145,6 +145,7 @@
     renderSumShift();
     renderSumDetail();
     renderSumTrend();
+    renderSumTrendLines();
     renderSumLeads();
     renderSumAttention();
   }
@@ -259,6 +260,122 @@
       return '<div class="sum-col" title="' + day + '/' + k.slice(5, 7) + ' · ' + o.parcel.toLocaleString() + ' parcel"><b>' + fmtK(o.parcel) + '</b><div class="sum-stk" style="height:' + h + 'px"></div><span>' + day + '</span></div>';
     }).join('');
   }
+
+  // ===== Tren Harian — Line Chart (4 grafik): rata-rata per jam & total harian, trip dan parcel =====
+  // Dirender sebagai SVG murni (tanpa library) ke dalam #sumTrendLines, yang dibuat otomatis tepat di bawah dua grafik batang
+  // Tren Harian, jadi inbound.html tidak perlu diubah. Ikut semua filter di atas (periode, vendor, shift, trip type, status).
+  // Grafik per jam memakai jam ATA (kolom Arrival); baris tanpa jam ATA tidak ikut karena jamnya tidak diketahui.
+  function lnNum(v, d) { return Number(v).toLocaleString('id-ID', { maximumFractionDigits: d == null ? 0 : d }); }
+  function lnNice(v) { // v = batas atas mentah; hasil = batas atas dgn 4 interval bersih
+    const raw = v / 4, p = Math.pow(10, Math.floor(Math.log10(raw))), f = raw / p, steps = [1, 2, 2.5, 3, 4, 5, 6, 8, 10];
+    for (let i = 0; i < steps.length; i++) if (f <= steps[i] + 1e-9) return steps[i] * p * 4;
+    return 10 * p * 4;
+  }
+
+  function lnInjectStyle() {
+    if (document.getElementById('sumLnStyle')) return;
+    const st = document.createElement('style'); st.id = 'sumLnStyle';
+    st.textContent = '#sumTrendLines{display:flex;flex-direction:column;gap:14px;margin-top:14px}' +
+      '.sumln-card{background:var(--card-bg,#fff);border:1px solid var(--border-color,#e2e8f0);border-radius:12px;padding:14px 16px 8px}' +
+      '.sumln-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:4px 16px;margin-bottom:4px}' +
+      '.sumln-title{font-size:13px;font-weight:700;color:var(--text-main,#0f172a)}' +
+      '.sumln-meta{font-size:11px;color:var(--text-muted,#64748b)}' +
+      '.sumln-body svg{display:block;width:100%;overflow:visible}';
+    document.head.appendChild(st);
+  }
+  function lnHost() {
+    let host = document.getElementById('sumTrendLines'); if (host) return host;
+    const a = document.getElementById('sumTrendTrip'), b = document.getElementById('sumTrendParcel'); if (!a || !b) return null;
+    let anc = a.parentElement; while (anc && !anc.contains(b)) anc = anc.parentElement; if (!anc) return null;
+    host = document.createElement('div'); host.id = 'sumTrendLines';
+    anc.insertAdjacentElement('afterend', host);
+    return host;
+  }
+
+  // labels[i] = teks sumbu X, vals[i] = nilai, o = { color, W, avg, d (desimal label), tip: function(i) }
+  function lnSvg(labels, vals, o) {
+    const W = o.W, H = 230, L = 50, R = 58, T = 24, B = 30, pw = W - L - R, ph = H - T - B, n = vals.length;
+    const maxV = Math.max.apply(null, vals.concat([o.avg || 0, 0.0001])), top = lnNice(maxV * 1.06);
+    const X = function (i) { return n === 1 ? L + pw / 2 : L + i * pw / (n - 1); }, Y = function (v) { return T + ph - v / top * ph; };
+    const gap = n > 1 ? pw / (n - 1) : pw, every = Math.max(1, Math.ceil(30 / gap)), lblEvery = Math.max(1, Math.ceil(26 / gap));
+    const tickFmt = function (v) { return v >= 1000 ? lnNum(v / 1000, v >= 10000 ? 0 : 1) + 'k' : lnNum(v, v % 1 ? 1 : 0); };
+    const muted = 'style="fill:var(--text-muted,#64748b)"', grid = 'stroke="var(--border-color,#e2e8f0)"';
+    let s = '<svg viewBox="0 0 ' + W + ' ' + H + '" xmlns="http://www.w3.org/2000/svg" font-family="inherit">';
+    for (let g = 0; g <= 4; g++) {
+      const v = top * g / 4, y = Y(v);
+      s += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + y + '" y2="' + y + '" ' + grid + ' stroke-width="1"' + (g ? ' stroke-dasharray="3 3"' : '') + '/>' +
+        '<text x="' + (L - 8) + '" y="' + (y + 3.5) + '" text-anchor="end" font-size="10" ' + muted + '>' + tickFmt(v) + '</text>';
+    }
+    labels.forEach(function (lb, i) { if (i % lblEvery === 0) s += '<text x="' + X(i) + '" y="' + (H - 10) + '" text-anchor="middle" font-size="10" ' + muted + '>' + lb + '</text>'; });
+    if (o.avg != null) {
+      const y = Y(o.avg);
+      s += '<line x1="' + L + '" x2="' + (W - R + 6) + '" y1="' + y + '" y2="' + y + '" stroke="#f59e0b" stroke-width="1.2" stroke-dasharray="5 4"/>' +
+        '<text x="' + (W - R + 10) + '" y="' + (y - 1) + '" font-size="9" fill="#d97706">rata-rata</text>' +
+        '<text x="' + (W - R + 10) + '" y="' + (y + 10) + '" font-size="10" font-weight="700" fill="#d97706">' + (o.avgTxt || lnNum(o.avg, o.d)) + '</text>';
+    }
+    const pts = vals.map(function (v, i) { return X(i) + ',' + Y(v); });
+    if (n > 1) {
+      s += '<path d="M' + X(0) + ',' + Y(0) + ' L' + pts.join(' L') + ' L' + X(n - 1) + ',' + Y(0) + ' Z" fill="' + o.color + '" fill-opacity="0.09"/>' +
+        '<polyline points="' + pts.join(' ') + '" fill="none" stroke="' + o.color + '" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>';
+    }
+    const peak = vals.indexOf(Math.max.apply(null, vals));
+    vals.forEach(function (v, i) {
+      const x = X(i), y = Y(v), big = i === peak;
+      s += '<circle cx="' + x + '" cy="' + y + '" r="' + (big ? 4 : 2.8) + '" fill="' + (big ? o.color : '#fff') + '" stroke="' + o.color + '" stroke-width="1.8"/>';
+      if (i % every === 0 || big) s += '<text x="' + x + '" y="' + (y - 8) + '" text-anchor="middle" font-size="10" font-weight="' + (big ? 800 : 600) + '" ' + muted + '>' + (o.fmt ? o.fmt(v) : lnNum(v, o.d)) + '</text>';
+      s += '<circle cx="' + x + '" cy="' + y + '" r="9" fill="transparent"><title>' + o.tip(i) + '</title></circle>';
+    });
+    return s + '</svg>';
+  }
+
+  function renderSumTrendLines() {
+    const host = lnHost(); if (!host) return;
+    lnInjectStyle();
+    const cw = host.clientWidth, W = cw > 0 ? Math.max(320, cw - 34) : 900;
+    const hrTrip = new Array(24).fill(0), hrPar = new Array(24).fill(0), dayTrip = {}, dayPar = {}, daysHr = {};
+    let noTime = 0;
+    sumFiltered.forEach(function (r) {
+      const d = rowDate(r); if (!d) return;
+      const k = ymd(d), p = pNum(r[C.parcel]);
+      dayTrip[k] = (dayTrip[k] || 0) + 1; dayPar[k] = (dayPar[k] || 0) + p;
+      const t = pDT(r[C.ata]);
+      if (!t) { noTime++; return; }
+      hrTrip[t.getHours()]++; hrPar[t.getHours()] += p; daysHr[ymd(t)] = 1;
+    });
+    const keys = Object.keys(dayTrip).sort();
+    const card = function (title, meta, body) { return '<div class="sumln-card"><div class="sumln-head"><div class="sumln-title">' + title + '</div><div class="sumln-meta">' + meta + '</div></div><div class="sumln-body">' + body + '</div></div>'; };
+    if (!keys.length) { host.innerHTML = card('📈 Line Chart Tren', '', '<div class="sum-empty">Tidak ada data di periode ini.</div>'); return; }
+
+    const nDays = Math.max(1, Object.keys(daysHr).length), hours = hrTrip.map(function (_, h) { return String(h).padStart(2, '0'); });
+    const hrLbl = function (h) { return String(h).padStart(2, '0') + ':00–' + String(h).padStart(2, '0') + ':59'; };
+    const dLbl = keys.map(function (k) { return k.slice(8); }), dTxt = function (k) { return k.slice(8) + '/' + k.slice(5, 7); };
+    const sum = function (a) { return a.reduce(function (x, y) { return x + y; }, 0); };
+    const avgTripHr = hrTrip.map(function (v) { return v / nDays; }), avgParHr = hrPar.map(function (v) { return v / nDays; });
+    const tripDay = keys.map(function (k) { return dayTrip[k]; }), parDay = keys.map(function (k) { return dayPar[k]; });
+    const maxIdx = function (a) { return a.indexOf(Math.max.apply(null, a)); };
+    const note = noTime ? ' · ' + noTime + ' trip tanpa jam ATA tidak dihitung' : '';
+    const basis = nDays + ' hari data' + note;
+
+    const ovTripHr = sum(hrTrip) / nDays / 24, ovParHr = sum(hrPar) / nDays / 24, pk1 = maxIdx(avgTripHr), pk3 = maxIdx(avgParHr), pk2 = maxIdx(tripDay), pk4 = maxIdx(parDay);
+    const avgTripDay = sum(tripDay) / keys.length, avgParDay = sum(parDay) / keys.length;
+
+    host.innerHTML =
+      card('🕐 Rata-rata Trip per Jam (00:00 – 23:59)',
+        'Rata-rata <b>' + lnNum(ovTripHr, 1) + '</b> trip/jam · puncak jam ' + hrLbl(pk1).slice(0, 5) + ' (' + lnNum(avgTripHr[pk1], 1) + ' trip) · ' + basis,
+        lnSvg(hours, avgTripHr, { W: W, color: '#2563eb', d: 1, avg: ovTripHr, tip: function (i) { return hrLbl(i) + ' · rata-rata ' + lnNum(avgTripHr[i], 1) + ' trip/jam (total ' + hrTrip[i] + ' trip dalam ' + nDays + ' hari)'; } })) +
+      card('🚚 Total Trip Masuk (Harian)',
+        'Total <b>' + lnNum(sum(tripDay)) + '</b> trip · rata-rata ' + lnNum(avgTripDay, 1) + ' trip/hari · tertinggi tgl ' + dTxt(keys[pk2]) + ' (' + tripDay[pk2] + ')',
+        lnSvg(dLbl, tripDay, { W: W, color: '#2563eb', d: 0, avg: avgTripDay, avgTxt: lnNum(avgTripDay, 1), tip: function (i) { return dTxt(keys[i]) + ' · ' + tripDay[i] + ' trip'; } })) +
+      card('🕐 Rata-rata Parcel Masuk per Jam (00:00 – 23:59)',
+        'Rata-rata <b>' + lnNum(ovParHr) + '</b> parcel/jam · puncak jam ' + hrLbl(pk3).slice(0, 5) + ' (' + lnNum(avgParHr[pk3]) + ' parcel) · ' + basis,
+        lnSvg(hours, avgParHr, { W: W, color: '#475569', d: 0, fmt: fmtK2, avg: ovParHr, avgTxt: lnNum(ovParHr), tip: function (i) { return hrLbl(i) + ' · rata-rata ' + lnNum(avgParHr[i]) + ' parcel/jam (total ' + lnNum(hrPar[i]) + ' parcel dalam ' + nDays + ' hari)'; } })) +
+      card('📦 Total Qty Parcel Masuk (Harian)',
+        'Total <b>' + lnNum(sum(parDay)) + '</b> parcel · rata-rata ' + lnNum(avgParDay) + ' parcel/hari · tertinggi tgl ' + dTxt(keys[pk4]) + ' (' + lnNum(parDay[pk4]) + ')',
+        lnSvg(dLbl, parDay, { W: W, color: '#475569', d: 0, fmt: fmtK2, avg: avgParDay, avgTxt: lnNum(avgParDay), tip: function (i) { return dTxt(keys[i]) + ' · ' + lnNum(parDay[i]) + ' parcel'; } }));
+  }
+  function fmtK2(n) { return n >= 1000 ? lnNum(n / 1000, n >= 10000 ? 0 : 1) + 'k' : lnNum(n); }
+  let lnResizeT = null;
+  window.addEventListener('resize', function () { clearTimeout(lnResizeT); lnResizeT = setTimeout(function () { if (sumFiltered.length) renderSumTrendLines(); }, 200); });
 
   function renderLeadTable(bodyId, idx) {
     const map = {};
