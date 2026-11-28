@@ -230,7 +230,51 @@
         return '<td>' + escapeHtml(v) + '</td>';
       }).join('') + '</tr>';
     }).join('') || '<tr><td colspan="' + (sumHeaders.length || 1) + '" style="color:#94a3b8;">Tidak ada data di periode ini.</td></tr>';
+    requestAnimationFrame(sumFreezeCols);
   }
+
+  // ===== Freeze kolom "Date Input" s.d "Nopol" (8 kolom pertama) di tabel Data Lengkap =====
+  // Kolom ini tetap diam waktu tabel digeser ke kanan. Posisi `left` tiap kolom dihitung dari lebar header yang sebenarnya,
+  // lalu dipasang lewat satu <style>, jadi baris yang dirender ulang otomatis ikut ter-freeze. Warna latar diambil dari
+  // sel yang tidak di-freeze (header & baris selang-seling) supaya konten yang digeser tidak tembus ke belakang kolom beku.
+  const SUM_FREEZE_N = C.nopol + 1;
+  function sumFreezeCols() {
+    const head = document.getElementById('sumDetailHead'), body = document.getElementById('sumDetailBody'); if (!head || !body) return;
+    const ths = head.children, n = Math.min(SUM_FREEZE_N, ths.length); if (!n) return;
+    const opaque = function (el, fb) { const c = el ? getComputedStyle(el).backgroundColor : ''; return (!c || c === 'transparent' || /,\s*0\)$/.test(c)) ? fb : c; };
+    const r1 = body.children[0], r2 = body.children[1];
+    const hb = opaque(ths[n] || ths[ths.length - 1], '#64748b'), odd = opaque(r1 && r1.children[n], '#fff'), even = opaque(r2 && r2.children[n], '#f8fafc');
+    // Dengan border-collapse, garis antar sel bukan bagian sel, jadi isi kolom yang digeser bisa "bocor" lewat celah 1px di belakang
+    // kolom beku. Tabel ini dipindah ke border-collapse:separate (border jadi milik tiap sel, latar menutup penuh). Kalau sel punya
+    // border di dua sisi yang bersebelahan (atas+bawah / kiri+kanan), satu sisinya dimatikan supaya garisnya tidak jadi dobel.
+    const tbl = body.parentElement, ref = r1 && r1.children[n] ? getComputedStyle(r1.children[n]) : null;
+    let dbl = '';
+    if (tbl && tbl.tagName === 'TABLE') {
+      tbl.style.borderCollapse = 'separate'; tbl.style.borderSpacing = '0';
+      if (ref) {
+        if (parseFloat(ref.borderTopWidth) > 0 && parseFloat(ref.borderBottomWidth) > 0) dbl += '#sumDetailBody td,#sumDetailHead th{border-top-width:0}';
+        if (parseFloat(ref.borderLeftWidth) > 0 && parseFloat(ref.borderRightWidth) > 0) dbl += '#sumDetailBody td,#sumDetailHead th{border-left-width:0}';
+      }
+    }
+    const nth = ':nth-child(-n+' + n + ')', cell = '#sumDetailBody td' + nth + ':not([colspan])';
+    const edge = 'box-shadow:3px 0 4px -2px rgba(15,23,42,.3)', last = ':nth-child(' + n + ')';
+    let css = dbl + '#sumDetailHead th' + nth + ',' + cell + '{position:sticky;z-index:2}' +
+      '#sumDetailHead th' + nth + '{z-index:6;background:' + hb + '}' +
+      '#sumDetailHead th' + last + ',#sumDetailBody td' + last + ':not([colspan]){' + edge + '}' +
+      '#sumDetailBody tr td' + nth + ':not([colspan]){background:' + odd + '}' +
+      '#sumDetailBody tr:nth-child(even) td' + nth + ':not([colspan]){background:' + even + '}';
+    let x = 0;
+    for (let i = 0; i < n; i++) {
+      css += '#sumDetailHead th:nth-child(' + (i + 1) + '),#sumDetailBody td:nth-child(' + (i + 1) + '):not([colspan]){left:' + x + 'px}';
+      x += ths[i].getBoundingClientRect().width;
+    }
+    let st = document.getElementById('sumFreezeStyle');
+    if (!st) { st = document.createElement('style'); st.id = 'sumFreezeStyle'; document.head.appendChild(st); }
+    st.textContent = css;
+  }
+  let sumFreezeT = null;
+  window.addEventListener('resize', function () { clearTimeout(sumFreezeT); sumFreezeT = setTimeout(sumFreezeCols, 200); });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { sumFreezeCols(); });
 
   function durCell(v, std) { return '<td class="' + (v == null ? '' : (v > std ? 'sum-over' : 'sum-ok')) + '">' + fMin(v) + '</td>'; }
   function fmtK(n) { return n >= 1000 ? (n / 1000).toFixed(n >= 10000 ? 0 : 1) + 'k' : String(n); }
@@ -261,10 +305,10 @@
     }).join('');
   }
 
-  // ===== Tren Harian — Line Chart (4 grafik): rata-rata per jam & total harian, trip dan parcel =====
+  // ===== Tren Harian — Line Chart: rata-rata trip per jam (00:00 – 23:59) =====
   // Dirender sebagai SVG murni (tanpa library) ke dalam #sumTrendLines, yang dibuat otomatis tepat di bawah dua grafik batang
   // Tren Harian, jadi inbound.html tidak perlu diubah. Ikut semua filter di atas (periode, vendor, shift, trip type, status).
-  // Grafik per jam memakai jam ATA (kolom Arrival); baris tanpa jam ATA tidak ikut karena jamnya tidak diketahui.
+  // Memakai jam ATA (kolom Arrival); baris tanpa jam ATA tidak ikut karena jamnya tidak diketahui.
   function lnNum(v, d) { return Number(v).toLocaleString('id-ID', { maximumFractionDigits: d == null ? 0 : d }); }
   function lnNice(v) { // v = batas atas mentah; hasil = batas atas dgn 4 interval bersih
     const raw = v / 4, p = Math.pow(10, Math.floor(Math.log10(raw))), f = raw / p, steps = [1, 2, 2.5, 3, 4, 5, 6, 8, 10];
@@ -332,48 +376,29 @@
     const host = lnHost(); if (!host) return;
     lnInjectStyle();
     const cw = host.clientWidth, W = cw > 0 ? Math.max(320, cw - 34) : 900;
-    const hrTrip = new Array(24).fill(0), hrPar = new Array(24).fill(0), dayTrip = {}, dayPar = {}, daysHr = {};
-    let noTime = 0;
+    const hrTrip = new Array(24).fill(0), daysHr = {};
+    let withDate = 0, noTime = 0;
     sumFiltered.forEach(function (r) {
-      const d = rowDate(r); if (!d) return;
-      const k = ymd(d), p = pNum(r[C.parcel]);
-      dayTrip[k] = (dayTrip[k] || 0) + 1; dayPar[k] = (dayPar[k] || 0) + p;
+      if (!rowDate(r)) return;
+      withDate++;
       const t = pDT(r[C.ata]);
       if (!t) { noTime++; return; }
-      hrTrip[t.getHours()]++; hrPar[t.getHours()] += p; daysHr[ymd(t)] = 1;
+      hrTrip[t.getHours()]++; daysHr[ymd(t)] = 1;
     });
-    const keys = Object.keys(dayTrip).sort();
     const card = function (title, meta, body) { return '<div class="sumln-card"><div class="sumln-head"><div class="sumln-title">' + title + '</div><div class="sumln-meta">' + meta + '</div></div><div class="sumln-body">' + body + '</div></div>'; };
-    if (!keys.length) { host.innerHTML = card('📈 Line Chart Tren', '', '<div class="sum-empty">Tidak ada data di periode ini.</div>'); return; }
+    const title = '🕐 Rata-rata Trip per Jam (00:00 – 23:59)';
+    if (!withDate || withDate === noTime) { host.innerHTML = card(title, '', '<div class="sum-empty">Tidak ada data di periode ini.</div>'); return; }
 
     const nDays = Math.max(1, Object.keys(daysHr).length), hours = hrTrip.map(function (_, h) { return String(h).padStart(2, '0'); });
     const hrLbl = function (h) { return String(h).padStart(2, '0') + ':00–' + String(h).padStart(2, '0') + ':59'; };
-    const dLbl = keys.map(function (k) { return k.slice(8); }), dTxt = function (k) { return k.slice(8) + '/' + k.slice(5, 7); };
-    const sum = function (a) { return a.reduce(function (x, y) { return x + y; }, 0); };
-    const avgTripHr = hrTrip.map(function (v) { return v / nDays; }), avgParHr = hrPar.map(function (v) { return v / nDays; });
-    const tripDay = keys.map(function (k) { return dayTrip[k]; }), parDay = keys.map(function (k) { return dayPar[k]; });
-    const maxIdx = function (a) { return a.indexOf(Math.max.apply(null, a)); };
+    const avgTripHr = hrTrip.map(function (v) { return v / nDays; });
+    const ovTripHr = hrTrip.reduce(function (x, y) { return x + y; }, 0) / nDays / 24, pk = avgTripHr.indexOf(Math.max.apply(null, avgTripHr));
     const note = noTime ? ' · ' + noTime + ' trip tanpa jam ATA tidak dihitung' : '';
-    const basis = nDays + ' hari data' + note;
 
-    const ovTripHr = sum(hrTrip) / nDays / 24, ovParHr = sum(hrPar) / nDays / 24, pk1 = maxIdx(avgTripHr), pk3 = maxIdx(avgParHr), pk2 = maxIdx(tripDay), pk4 = maxIdx(parDay);
-    const avgTripDay = sum(tripDay) / keys.length, avgParDay = sum(parDay) / keys.length;
-
-    host.innerHTML =
-      card('🕐 Rata-rata Trip per Jam (00:00 – 23:59)',
-        'Rata-rata <b>' + lnNum(ovTripHr, 1) + '</b> trip/jam · puncak jam ' + hrLbl(pk1).slice(0, 5) + ' (' + lnNum(avgTripHr[pk1], 1) + ' trip) · ' + basis,
-        lnSvg(hours, avgTripHr, { W: W, color: '#2563eb', d: 1, avg: ovTripHr, tip: function (i) { return hrLbl(i) + ' · rata-rata ' + lnNum(avgTripHr[i], 1) + ' trip/jam (total ' + hrTrip[i] + ' trip dalam ' + nDays + ' hari)'; } })) +
-      card('🚚 Total Trip Masuk (Harian)',
-        'Total <b>' + lnNum(sum(tripDay)) + '</b> trip · rata-rata ' + lnNum(avgTripDay, 1) + ' trip/hari · tertinggi tgl ' + dTxt(keys[pk2]) + ' (' + tripDay[pk2] + ')',
-        lnSvg(dLbl, tripDay, { W: W, color: '#2563eb', d: 0, avg: avgTripDay, avgTxt: lnNum(avgTripDay, 1), tip: function (i) { return dTxt(keys[i]) + ' · ' + tripDay[i] + ' trip'; } })) +
-      card('🕐 Rata-rata Parcel Masuk per Jam (00:00 – 23:59)',
-        'Rata-rata <b>' + lnNum(ovParHr) + '</b> parcel/jam · puncak jam ' + hrLbl(pk3).slice(0, 5) + ' (' + lnNum(avgParHr[pk3]) + ' parcel) · ' + basis,
-        lnSvg(hours, avgParHr, { W: W, color: '#475569', d: 0, fmt: fmtK2, avg: ovParHr, avgTxt: lnNum(ovParHr), tip: function (i) { return hrLbl(i) + ' · rata-rata ' + lnNum(avgParHr[i]) + ' parcel/jam (total ' + lnNum(hrPar[i]) + ' parcel dalam ' + nDays + ' hari)'; } })) +
-      card('📦 Total Qty Parcel Masuk (Harian)',
-        'Total <b>' + lnNum(sum(parDay)) + '</b> parcel · rata-rata ' + lnNum(avgParDay) + ' parcel/hari · tertinggi tgl ' + dTxt(keys[pk4]) + ' (' + lnNum(parDay[pk4]) + ')',
-        lnSvg(dLbl, parDay, { W: W, color: '#475569', d: 0, fmt: fmtK2, avg: avgParDay, avgTxt: lnNum(avgParDay), tip: function (i) { return dTxt(keys[i]) + ' · ' + lnNum(parDay[i]) + ' parcel'; } }));
+    host.innerHTML = card(title,
+      'Rata-rata <b>' + lnNum(ovTripHr, 1) + '</b> trip/jam · puncak jam ' + hrLbl(pk).slice(0, 5) + ' (' + lnNum(avgTripHr[pk], 1) + ' trip) · ' + nDays + ' hari data' + note,
+      lnSvg(hours, avgTripHr, { W: W, color: '#2563eb', d: 1, avg: ovTripHr, tip: function (i) { return hrLbl(i) + ' · rata-rata ' + lnNum(avgTripHr[i], 1) + ' trip/jam (total ' + hrTrip[i] + ' trip dalam ' + nDays + ' hari)'; } }));
   }
-  function fmtK2(n) { return n >= 1000 ? lnNum(n / 1000, n >= 10000 ? 0 : 1) + 'k' : lnNum(n); }
   let lnResizeT = null;
   window.addEventListener('resize', function () { clearTimeout(lnResizeT); lnResizeT = setTimeout(function () { if (sumFiltered.length) renderSumTrendLines(); }, 200); });
 
