@@ -1,8 +1,8 @@
 // ===== Modul: Pre-Work by Attendance FMS =====
 // Input: Raw Attendance FMS. Yang dicek hanya operator yang sudah Clock In; statusnya dari getPreWorkStatus() (sumber sama dengan modul Rest Time).
 let attnRows = [];
-const ATTN_DEPTS = ["soc operator", "eha operator", "cache operator"];
-// Dept yang dihitung: SOC / EHA Operator persis, atau Cache Operator (nama dept yang mengandung "cache", sama seperti filter di Rest Time Monitoring)
+const ATTN_DEPTS = ["soc operator", "eha operator", "cache operator", "soc pic", "admin"];
+// Dept yang dihitung: SOC Operator, EHA Operator, SOC PIC & Admin persis, atau Cache Operator (nama dept yang mengandung "cache", sama seperti filter di Rest Time Monitoring)
 function attnDeptAllowed(d) { d = String(d || "").trim().toLowerCase(); return ATTN_DEPTS.indexOf(d) >= 0 || d.indexOf("cache") >= 0; }
 const ATTN_ORDER = { BELUM_SUBMIT: 0, UNFIT: 1, EMPTY: 3, OTHER: 3, LOADING: 4, ERROR: 4, FIT: 5 };
 
@@ -75,7 +75,7 @@ function attnBuildRows(rows) {
         totalRows++;
         const cd = attnYmd(get(r, iCd), order), ct = get(r, iCt);
         if (!cd || !ct) { skipped++; return; }
-        if (!attnDeptAllowed(get(r, iDept))) { excluded++; return; }  // auto filter: hanya SOC, EHA & Cache Operator
+        if (!attnDeptAllowed(get(r, iDept))) { excluded++; return; }  // auto filter: hanya SOC Operator, EHA Operator, Cache Operator, SOC PIC & Admin
         const rec = { opsId: id, name: get(r, iName), agency: get(r, iAg), dept: get(r, iDept), start: get(r, iStart), shiftName: get(r, iShift), shift: attnShiftBucket(get(r, iStart)), date: cd, time: ct, status: get(r, iSt) };
         const key = id.toLowerCase() + "|" + cd;
         if (!map[key] || rec.time < map[key].time) map[key] = rec;
@@ -100,7 +100,7 @@ function attnHandleFile(input) {
             } else rows = attnParseCsv(e.target.result);
             const res = attnBuildRows(rows);
             if (res.error) { showToast("❌ " + res.error, "err"); input.value = ""; return; }
-            if (!res.list.length) { showToast("⚠️ Tidak ada absen valid di file ini (butuh SOC / EHA / Cache Operator dengan Clock In). Import dibatalkan.", "info"); input.value = ""; return; }
+            if (!res.list.length) { showToast("⚠️ Tidak ada absen valid di file ini (butuh SOC Operator / EHA Operator / Cache Operator / SOC PIC / Admin dengan Clock In). Import dibatalkan.", "info"); input.value = ""; return; }
             attnPending = { fileName: file.name, res: res };
             attnShowPreview();
         } catch (err) { console.error(err); showToast("❌ Gagal membaca file attendance.", "err"); }
@@ -172,7 +172,7 @@ function attnShowPreview() {
             ? "<br><span style=\"color:var(--text-muted);\">" + show + (mm.missing.length > 10 ? ", dan " + (mm.missing.length - 10) + " lainnya" : "") + "</span>"
             : " — semua sudah terdaftar.")));
     }
-    if (res.skipped || res.excluded) rows.push(ln("ℹ️ " + [res.skipped ? res.skipped + " baris tanpa Clock In diabaikan" : "", res.excluded ? res.excluded + " absen dept lain diabaikan (hanya SOC, EHA & Cache Operator)" : ""].filter(Boolean).join(" · ")));
+    if (res.skipped || res.excluded) rows.push(ln("ℹ️ " + [res.skipped ? res.skipped + " baris tanpa Clock In diabaikan" : "", res.excluded ? res.excluded + " absen dept lain diabaikan (hanya SOC Operator, EHA Operator, Cache Operator, SOC PIC & Admin)" : ""].filter(Boolean).join(" · ")));
     document.getElementById("attnPvDetail").innerHTML = rows.join("");
     document.getElementById("attnPreviewModal").style.display = "flex";
 }
@@ -205,7 +205,7 @@ function attnRowFromArr(a) {
 
 function attnInfoText(m) {
     return m.fileName + " · " + m.count + " absen (" + m.min + " s/d " + m.max + ")" + (m.skipped ? " · " + m.skipped + " baris tanpa Clock In diabaikan" : "") +
-        (m.excluded ? " · " + m.excluded + " absen dept lain diabaikan (hanya SOC, EHA & Cache Operator)" : "") + (m.importedBy ? " · diimport " + m.importedBy + " " + m.importedAt : "");
+        (m.excluded ? " · " + m.excluded + " absen dept lain diabaikan (hanya SOC Operator, EHA Operator, Cache Operator, SOC PIC & Admin)" : "") + (m.importedBy ? " · diimport " + m.importedBy + " " + m.importedAt : "");
 }
 
 // Satu baris per OpsID + tanggal (ambil Clock In paling awal), jadi baris dobel akibat pembersihan tanggal tidak ikut tampil
