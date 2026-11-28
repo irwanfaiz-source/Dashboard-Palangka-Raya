@@ -1,8 +1,8 @@
 // ===== Modul: Pre-Work by Attendance FMS =====
 // Input: Raw Attendance FMS. Yang dicek hanya operator yang sudah Clock In; statusnya dari getPreWorkStatus() (sumber sama dengan modul Rest Time).
 let attnRows = [];
-const ATTN_DEPTS = ["soc operator", "eha operator", "cache operator", "soc pic", "admin"];
-// Dept yang dihitung: SOC Operator, EHA Operator, SOC PIC & Admin persis, atau Cache Operator (nama dept yang mengandung "cache", sama seperti filter di Rest Time Monitoring)
+const ATTN_DEPTS = ["soc operator", "eha operator", "cache operator", "soc pic"];
+// Dept yang dihitung: SOC Operator, EHA Operator & SOC PIC persis, atau Cache Operator (nama dept yang mengandung "cache", sama seperti filter di Rest Time Monitoring)
 function attnDeptAllowed(d) { d = String(d || "").trim().toLowerCase(); return ATTN_DEPTS.indexOf(d) >= 0 || d.indexOf("cache") >= 0; }
 const ATTN_ORDER = { BELUM_SUBMIT: 0, UNFIT: 1, EMPTY: 3, OTHER: 3, LOADING: 4, ERROR: 4, FIT: 5 };
 
@@ -75,7 +75,7 @@ function attnBuildRows(rows) {
         totalRows++;
         const cd = attnYmd(get(r, iCd), order), ct = get(r, iCt);
         if (!cd || !ct) { skipped++; return; }
-        if (!attnDeptAllowed(get(r, iDept))) { excluded++; return; }  // auto filter: hanya SOC Operator, EHA Operator, Cache Operator, SOC PIC & Admin
+        if (!attnDeptAllowed(get(r, iDept))) { excluded++; return; }  // auto filter: hanya SOC Operator, EHA Operator, Cache Operator & SOC PIC
         const rec = { opsId: id, name: get(r, iName), agency: get(r, iAg), dept: get(r, iDept), start: get(r, iStart), shiftName: get(r, iShift), shift: attnShiftBucket(get(r, iStart)), date: cd, time: ct, status: get(r, iSt) };
         const key = id.toLowerCase() + "|" + cd;
         if (!map[key] || rec.time < map[key].time) map[key] = rec;
@@ -100,7 +100,7 @@ function attnHandleFile(input) {
             } else rows = attnParseCsv(e.target.result);
             const res = attnBuildRows(rows);
             if (res.error) { showToast("❌ " + res.error, "err"); input.value = ""; return; }
-            if (!res.list.length) { showToast("⚠️ Tidak ada absen valid di file ini (butuh SOC Operator / EHA Operator / Cache Operator / SOC PIC / Admin dengan Clock In). Import dibatalkan.", "info"); input.value = ""; return; }
+            if (!res.list.length) { showToast("⚠️ Tidak ada absen valid di file ini (butuh SOC Operator / EHA Operator / Cache Operator / SOC PIC dengan Clock In). Import dibatalkan.", "info"); input.value = ""; return; }
             attnPending = { fileName: file.name, res: res };
             attnShowPreview();
         } catch (err) { console.error(err); showToast("❌ Gagal membaca file attendance.", "err"); }
@@ -172,7 +172,7 @@ function attnShowPreview() {
             ? "<br><span style=\"color:var(--text-muted);\">" + show + (mm.missing.length > 10 ? ", dan " + (mm.missing.length - 10) + " lainnya" : "") + "</span>"
             : " — semua sudah terdaftar.")));
     }
-    if (res.skipped || res.excluded) rows.push(ln("ℹ️ " + [res.skipped ? res.skipped + " baris tanpa Clock In diabaikan" : "", res.excluded ? res.excluded + " absen dept lain diabaikan (hanya SOC Operator, EHA Operator, Cache Operator, SOC PIC & Admin)" : ""].filter(Boolean).join(" · ")));
+    if (res.skipped || res.excluded) rows.push(ln("ℹ️ " + [res.skipped ? res.skipped + " baris tanpa Clock In diabaikan" : "", res.excluded ? res.excluded + " absen dept lain diabaikan (hanya SOC Operator, EHA Operator, Cache Operator & SOC PIC)" : ""].filter(Boolean).join(" · ")));
     document.getElementById("attnPvDetail").innerHTML = rows.join("");
     document.getElementById("attnPreviewModal").style.display = "flex";
 }
@@ -205,7 +205,7 @@ function attnRowFromArr(a) {
 
 function attnInfoText(m) {
     return m.fileName + " · " + m.count + " absen (" + m.min + " s/d " + m.max + ")" + (m.skipped ? " · " + m.skipped + " baris tanpa Clock In diabaikan" : "") +
-        (m.excluded ? " · " + m.excluded + " absen dept lain diabaikan (hanya SOC Operator, EHA Operator, Cache Operator, SOC PIC & Admin)" : "") + (m.importedBy ? " · diimport " + m.importedBy + " " + m.importedAt : "");
+        (m.excluded ? " · " + m.excluded + " absen dept lain diabaikan (hanya SOC Operator, EHA Operator, Cache Operator & SOC PIC)" : "") + (m.importedBy ? " · diimport " + m.importedBy + " " + m.importedAt : "");
 }
 
 // Satu baris per OpsID + tanggal (ambil Clock In paling awal), jadi baris dobel akibat pembersihan tanggal tidak ikut tampil
@@ -244,20 +244,96 @@ const ATTN_LOG_MAX = 200;
 let attnImportLog = [];   // [{ key, ts, at, by, file, added, updated, total, min, max, inFile, skipped, excluded }] terbaru di atas
 let attnLegacyMeta = null;
 
+// ----- Cache lokal (IndexedDB) + deteksi versi: hemat download Firebase -----
+// Dulu: listener .on("value") ke SELURUH node attendanceFms (±15 ribu baris + importLog), jadi tiap user yang buka tab ini dan tiap
+// ada import, semua data diunduh ulang penuh. Sekarang yang dipantau cuma dua field kecil (rev & importedAt, beberapa byte). Isi
+// lengkap baru diunduh kalau versinya beda dari salinan di browser ini; kalau sama, data langsung dipakai dari cache (0 download data).
+const ATTN_CACHE_SCHEMA = 1;
+let attnCurrentVer = null, attnVerParts = { rev: undefined, at: undefined }, attnVerTimer = null, attnFetching = false, attnRecheck = false;
+function attnVerOf(rev, at) { return (rev || "") + "|" + (at || ""); }
+function attnCacheKey() { return "attn:" + FB_ROOT; }
+function attnIdb() {
+    return new Promise(function (res) {
+        try {
+            if (!window.indexedDB) return res(null);
+            const rq = indexedDB.open("pkyDcCache", 1);
+            rq.onupgradeneeded = function () { rq.result.createObjectStore("kv"); };
+            rq.onsuccess = function () { res(rq.result); };
+            rq.onerror = rq.onblocked = function () { res(null); };
+        } catch (e) { res(null); }
+    });
+}
+function attnCacheGet() {
+    return attnIdb().then(function (db) {
+        if (!db) return null;
+        return new Promise(function (res) {
+            try { const q = db.transaction("kv").objectStore("kv").get(attnCacheKey()); q.onsuccess = function () { res(q.result || null); }; q.onerror = function () { res(null); }; }
+            catch (e) { res(null); }
+        });
+    });
+}
+function attnCachePut(obj) {
+    return attnIdb().then(function (db) {
+        if (!db) return;
+        return new Promise(function (res) {
+            try { const tx = db.transaction("kv", "readwrite"); tx.objectStore("kv").put(obj, attnCacheKey()); tx.oncomplete = tx.onerror = tx.onabort = function () { res(); }; }
+            catch (e) { res(); }
+        });
+    }).catch(function () { });
+}
+
+function attnMetaOf(v) { return { fileName: v.fileName || "", count: v.count || 0, min: v.min || "", max: v.max || "", skipped: v.skipped || 0, excluded: v.excluded || 0, importedBy: v.importedBy || "", importedAt: v.importedAt || "" }; }
+function attnLogOf(v) { return Object.keys(v.importLog || {}).map(function (k) { return Object.assign({ key: k }, v.importLog[k]); }).sort(function (a, b) { return (b.ts || 0) - (a.ts || 0); }); }
+function attnUseRaw(rowsArr, meta, logArr) {
+    attnLegacyMeta = meta; attnImportLog = logArr || [];
+    if (document.getElementById("attnImportLogModal").style.display === "flex") attnOpenImportLog();
+    attnApplyData(rowsArr.map(attnRowFromArr), meta, false);
+}
+
+// Unduh penuh (rows + meta + importLog) HANYA kalau versi di Firebase beda dari yang sudah kita punya.
+function attnFetchAll() {
+    if (attnFetching) { attnRecheck = true; return; }
+    attnFetching = true;
+    fbDb.ref(FB_ROOT + "/attendanceFms").once("value").then(function (snap) {
+        const v = snap.val(); if (!v || !v.rows) return;
+        const rowsArr = Object.keys(v.rows).map(function (k) { return v.rows[k]; }), meta = attnMetaOf(v), log = attnLogOf(v);
+        attnCurrentVer = attnVerOf(v.rev, v.importedAt);
+        attnUseRaw(rowsArr, meta, log);
+        return attnCachePut({ schema: ATTN_CACHE_SCHEMA, ver: attnCurrentVer, rows: rowsArr, meta: meta, importLog: log });
+    }).catch(function (err) { console.error(err); showToast("⚠️ Gagal memuat data attendance dari Firebase.", "err"); })
+        .then(function () { attnFetching = false; if (attnRecheck) { attnRecheck = false; attnCheckVersion(); } });
+}
+function attnCheckVersion() {
+    const p = attnVerParts; if (p.rev === undefined || p.at === undefined) return;
+    const ver = attnVerOf(p.rev, p.at);
+    if (ver === "|" || ver === attnCurrentVer) return;   // belum ada data / versi sama dengan cache
+    attnFetchAll();
+}
+function attnVerSeen(part, val) {
+    attnVerParts[part] = val == null ? "" : val;   // "" = field belum ada (data lama sebelum ada rev)
+    clearTimeout(attnVerTimer); attnVerTimer = setTimeout(attnCheckVersion, 200);   // gabung event rev & importedAt yang datang berurutan
+}
+
 function attnSaveToFirebase(list, meta, logEntry) {
     if (!fbDb) { showToast("⚠️ Belum terhubung ke Firebase. Data hanya sementara di halaman ini.", "info"); return; }
-    const base = FB_ROOT + "/attendanceFms/", up = {};
+    const base = FB_ROOT + "/attendanceFms/", up = {}, rev = Date.now(), rowsArr = list.map(attnRowToArr);
     Object.keys(meta).forEach(function (k) { up[base + k] = meta[k]; });
-    up[base + "rows"] = list.map(attnRowToArr);
+    up[base + "rows"] = rowsArr; up[base + "rev"] = rev;
+    attnCurrentVer = attnVerOf(rev, meta.importedAt);   // ditandai SEBELUM menulis: event lokal Firebase jangan memicu unduh ulang data yang baru kita kirim sendiri
+    attnLegacyMeta = meta;
+    const putCache = function () { return attnCachePut({ schema: ATTN_CACHE_SCHEMA, ver: attnCurrentVer, rows: rowsArr, meta: meta, importLog: attnImportLog }); };
     fbDb.ref().update(up)
         .then(function () {
             showToast("✅ " + list.length + " data absen FMS disimpan ke Firebase.", "ok");
-            if (!logEntry) return;
+            if (!logEntry) return putCache();
             const lu = {}, key = fbDb.ref(base + "importLog").push().key;
             lu[base + "importLog/" + key] = logEntry;
             const over = attnImportLog.length + 1 - ATTN_LOG_MAX;   // buang entri paling lama kalau melebihi batas
             if (over > 0) attnImportLog.slice(-over).forEach(function (e) { lu[base + "importLog/" + e.key] = null; });
-            return fbDb.ref().update(lu).catch(function (err) { console.error(err); showToast("⚠️ Data tersimpan, tapi Update Log gagal dicatat. Cek Security Rules path attendanceFms/importLog.", "info"); });
+            return fbDb.ref().update(lu).then(function () {
+                const keep = over > 0 ? attnImportLog.slice(0, attnImportLog.length - over) : attnImportLog.slice();
+                attnImportLog = [Object.assign({ key: key }, logEntry)].concat(keep);
+            }).catch(function (err) { console.error(err); showToast("⚠️ Data tersimpan, tapi Update Log gagal dicatat. Cek Security Rules path attendanceFms/importLog.", "info"); }).then(putCache);
         })
         .catch(function (err) { console.error(err); showToast("❌ Gagal simpan ke Firebase. Cek Security Rules untuk path attendanceFms.", "err"); });
 }
@@ -287,17 +363,16 @@ function attnOpenImportLog() {
 }
 function attnCloseImportLog() { document.getElementById("attnImportLogModal").style.display = "none"; }
 
-// Listener dipasang sekali, baru saat tab ini pertama dibuka (biar page load Rest Time nggak ikut narik datanya).
+// Dipasang sekali, baru saat tab ini pertama dibuka (biar page load Rest Time nggak ikut narik datanya).
+// Urutan: (1) pakai cache browser kalau ada -> tampil instan tanpa download, (2) pantau rev & importedAt (beberapa byte),
+// (3) kalau versinya beda dari cache, baru unduh penuh sekali (attnFetchAll).
 function attnAttachListener() {
     if (attnListenerRef || !fbDb) return;
     attnListenerRef = fbDb.ref(FB_ROOT + "/attendanceFms");
-    attnListenerRef.on("value", function (snap) {
-        const v = snap.val(); if (!v || !v.rows) return;
-        const meta = { fileName: v.fileName || "", count: v.count || 0, min: v.min || "", max: v.max || "", skipped: v.skipped || 0, excluded: v.excluded || 0, importedBy: v.importedBy || "", importedAt: v.importedAt || "" };
-        attnLegacyMeta = meta;
-        attnImportLog = Object.keys(v.importLog || {}).map(function (k) { return Object.assign({ key: k }, v.importLog[k]); }).sort(function (a, b) { return (b.ts || 0) - (a.ts || 0); });
-        if (document.getElementById("attnImportLogModal").style.display === "flex") attnOpenImportLog();
-        attnApplyData(Object.keys(v.rows).map(function (k) { return attnRowFromArr(v.rows[k]); }), meta, false);
+    attnCacheGet().then(function (c) {
+        if (c && c.schema === ATTN_CACHE_SCHEMA && c.rows && c.meta) { attnCurrentVer = c.ver; attnUseRaw(c.rows, c.meta, c.importLog); }
+        attnListenerRef.child("rev").on("value", function (snap) { attnVerSeen("rev", snap.val()); });
+        attnListenerRef.child("importedAt").on("value", function (snap) { attnVerSeen("at", snap.val()); });
     });
 }
 
